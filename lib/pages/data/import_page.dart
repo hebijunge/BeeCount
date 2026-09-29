@@ -207,6 +207,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<String> _readFileStreaming(PlatformFile picked) async {
     if (!mounted) return '';
 
+    // 先取好注入 xlsx 的「账本」列表头：xlsxConverter 是在异步读流回调里执行的，
+    // 那时 context 可能已经失效，不能就地取 l10n。
+    final ledgerHeader = AppLocalizations.of(context).exportCsvHeaderLedger;
+
     setState(() {
       _reading = true;
       _readProgress = 0;
@@ -226,7 +230,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         },
         xlsxConverter: (bytes) {
           try {
-            return XlsxReader.convertXlsxToCSV(bytes);
+            return XlsxReader.convertXlsxToCSV(
+              bytes,
+              ledgerColumnHeader: ledgerHeader,
+            );
           } catch (e) {
             if (mounted) {
               showToast(

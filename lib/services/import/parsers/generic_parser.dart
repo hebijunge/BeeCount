@@ -110,6 +110,13 @@ class GenericBillParser implements BillParser {
     if (noSpace == 'currency' || noSpace == 'currencycode') {
       return 'currency';
     }
+    // 多账本导入：账本列（导出 CSV 的第 0 列 / xlsx 注入的 sheet 名列）
+    if (noSpace == 'ledger' ||
+        noSpace == 'ledgername' ||
+        noSpace == 'accountbook' ||
+        noSpace == 'bookname') {
+      return 'ledger';
+    }
     if (noSpace == 'category' ||
         noSpace == 'cate' ||
         noSpace == 'subject' ||
@@ -126,6 +133,11 @@ class GenericBillParser implements BillParser {
     }
 
     // 中文匹配
+    // 账本列要先于「分类/类型/账户」等宽泛词匹配：否则「账本名称」这类表头可能被下游
+    // 分支吞掉，多账本文件的归属信息就又丢了。
+    if (_containsAny(s, ['账本', '帳本', '賬本', '가계부'])) {
+      return 'ledger';
+    }
     if (_containsAny(s, ['日期', '时间', '交易时间', '账单时间', '创建时间'])) {
       return 'date';
     }

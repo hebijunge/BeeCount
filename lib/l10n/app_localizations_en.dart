@@ -1491,6 +1491,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineCurrentBalance => 'Ledger balance';
 
   @override
+  String get mineAllLedgersSummary => 'All ledgers';
+
+  @override
   String get mineCloudService => 'Cloud Service';
 
   @override
@@ -2732,7 +2735,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportTitle => 'Export';
 
   @override
-  String get exportDescription => 'Supported export types:\n• Transactions (Income/Expense/Transfer)\n• Categories\n• Accounts\n\nClick the button below to select save location and export current ledger to CSV file.';
+  String get exportDescription => 'Supported export types:\n• Transactions (Income/Expense/Transfer)\n• Categories\n• Accounts\n\nPick the ledgers and the export format below. Excel puts every selected ledger on its own sheet; CSV merges them into one table with a Ledger column.';
 
   @override
   String get exportButtonIOS => 'Export and Share';
@@ -2777,6 +2780,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportCsvHeaderAttachments => 'Attachments';
+
+  @override
+  String get exportCsvHeaderLedger => 'Ledger';
+
+  @override
+  String get exportFormatLabel => 'Format';
+
+  @override
+  String get exportFormatCsv => 'CSV';
+
+  @override
+  String get exportFormatExcel => 'Excel';
+
+  @override
+  String get exportFormatExcelHint => 'One sheet per ledger';
+
+  @override
+  String get exportFormatCsvHint => 'All ledgers in one sheet, with a Ledger column';
+
+  @override
+  String get exportLedgersLabel => 'Ledgers';
+
+  @override
+  String get exportAllLedgers => 'All ledgers';
+
+  @override
+  String get exportNoLedgerSelected => 'Select at least one ledger to export';
+
+  @override
+  String get exportColumnsLabel => 'Columns';
+
+  @override
+  String get exportColumnsHint => 'Amount is always included. Without the type column, re-imports treat rows as expenses; leaving out category or account columns drops that data from the file.';
+
+  @override
+  String get exportPreviewTitle => 'Export preview';
+
+  @override
+  String get exportPreviewConfirm => 'Export';
+
+  @override
+  String exportPreviewRowCount(Object total) {
+    return '$total rows';
+  }
+
+  @override
+  String get exportPreviewEmptyLedger => 'No transactions in this ledger';
 
   @override
   String get exportShareText => 'BeeCount Export File';

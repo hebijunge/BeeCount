@@ -1491,6 +1491,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mineCurrentBalance => '잔액';
 
   @override
+  String get mineAllLedgersSummary => '모든 가계부 합계';
+
+  @override
   String get mineCloudService => '클라우드 서비스';
 
   @override
@@ -2732,7 +2735,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportTitle => '내보내기';
 
   @override
-  String get exportDescription => '지원되는 내보내기 유형:\n• 거래 (수입/지출/이체)\n• 카테고리\n• 계정\n\n아래 버튼을 눌러 저장 위치를 선택하면 현재 가계부를 CSV 파일로 내보냅니다.';
+  String get exportDescription => '지원되는 내보내기 유형:\n• 거래 (수입/지출/이체)\n• 카테고리\n• 계정\n\n아래에서 내보낼 가계부와 형식을 선택하세요. Excel은 가계부별로 시트를 만들고, CSV는 \'가계부\' 열로 구분해 한 시트에 합칩니다.';
 
   @override
   String get exportButtonIOS => '내보내기 및 공유';
@@ -2777,6 +2780,53 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exportCsvHeaderAttachments => '첨부파일';
+
+  @override
+  String get exportCsvHeaderLedger => '가계부';
+
+  @override
+  String get exportFormatLabel => '내보내기 형식';
+
+  @override
+  String get exportFormatCsv => 'CSV';
+
+  @override
+  String get exportFormatExcel => 'Excel';
+
+  @override
+  String get exportFormatExcelHint => '가계부별 시트';
+
+  @override
+  String get exportFormatCsvHint => '모든 가계부를 한 시트에 통합, 가계부 열로 구분';
+
+  @override
+  String get exportLedgersLabel => '내보낼 가계부';
+
+  @override
+  String get exportAllLedgers => '모든 가계부';
+
+  @override
+  String get exportNoLedgerSelected => '가계부를 하나 이상 선택하세요';
+
+  @override
+  String get exportColumnsLabel => '내보낼 열';
+
+  @override
+  String get exportColumnsHint => '금액 열은 항상 포함됩니다. 유형 열을 선택하지 않으면 재가져오기 시 지출로 처리되며, 분류·계정 열을 빼면 해당 정보가 파일에 기록되지 않습니다.';
+
+  @override
+  String get exportPreviewTitle => '내보내기 미리보기';
+
+  @override
+  String get exportPreviewConfirm => '내보내기 확인';
+
+  @override
+  String exportPreviewRowCount(Object total) {
+    return '총 $total건';
+  }
+
+  @override
+  String get exportPreviewEmptyLedger => '이 가계부에는 거래가 없습니다';
 
   @override
   String get exportShareText => 'BeeCount 내보내기 파일';

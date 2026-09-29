@@ -3,6 +3,7 @@ import '../data/db.dart';
 import '../data/repositories/base_repository.dart';
 import '../data/repositories/transaction_repository.dart' show BatchAttachmentData;
 import 'currency/rate_math.dart';
+import 'export/xlsx_workbook_writer.dart' show safeSheetName;
 import 'system/logger_service.dart';
 
 /// 统一的数据导入服务
@@ -102,6 +103,9 @@ class ImportTransaction {
   final String? syncId; // 跨设备同步唯一标识
   /// v30 多币种:CSV 币种列(反馈10)。null → 账户币种/账本本位币兜底。
   final String? currencyCode;
+  /// 多账本导入：该行原本属于哪个账本。来源是导出 CSV 的「账本」列或 xlsx 的 sheet 名。
+  /// 为 null 时沿用调用方传入的目标账本，即旧的单账本行为。
+  final String? ledgerName;
 
   const ImportTransaction({
     required this.type,
@@ -118,6 +122,7 @@ class ImportTransaction {
     this.categoryId,
     this.attachments,
     this.syncId,
+    this.ledgerName,
   });
 }
 
@@ -165,6 +170,30 @@ class ImportResult {
 /// - 交易插入（批量写入）
 /// - 标签关联
 class DataImportService {
+  /// 按账本名找到目标账本，找不到就新建一个，返回其 id。
+  ///
+  /// 匹配同时接受「账本原名」和「sheet 安全化名」：xlsx 的 sheet 名是 safeSheetName
+  /// 处理过的结果（截到 31 字符、非法字符换成空格、重名追加 `(2)`），只按原名比对会让
+  /// 导入认不出自家导出的文件，从而静默多建一个重复账本。
+  Future<int> ensureLedgerByName(
+    BaseRepository repo,
+    String name, {
+    String currency = 'CNY',
+  }) async {
+    final wanted = name.trim();
+    if (wanted.isEmpty) {
+      throw ArgumentError('账本名不能为空');
+    }
+    final lower = wanted.toLowerCase();
+    for (final ledger in await repo.getAllLedgers()) {
+      final original = ledger.name.trim().toLowerCase();
+      final sheetForm =
+          safeSheetName(ledger.name, ledger.id).trim().toLowerCase();
+      if (original == lower || sheetForm == lower) return ledger.id;
+    }
+    return await repo.createLedger(name: wanted, currency: currency);
+  }
+
   /// 导入数据到指定账本
   ///
   /// [repo] - 数据仓库
@@ -183,16 +212,11 @@ class DataImportService {
     void Function(int done, int total)? onProgress,
     bool recordChanges = true,
   }) async {
-    // 1. 更新账本信息（如果提供）
-    if (data.ledgerName != null || data.currency != null) {
-      try {
-        await repo.updateLedger(
-          id: ledgerId,
-          name: data.ledgerName,
-          currency: data.currency,
-        );
-      } catch (_) {}
-    }
+    // 1. 账本本身不因导入文件而改名/改币种。
+    //    旧实现在这里拿 data.ledgerName 直接 updateLedger，于是导入一个多账本文件会把
+    //    用户当前所在的账本悄悄改成文件里那个名字，异常还被 catch (_) 吞掉无从察觉。
+    //    现在多账本按每行的 ledgerName 分组落到各自账本，目标账本名称由用户自己决定；
+    //    文件里的 currency 只用于给新建账户兜底币种（见下方 defaultCurrency）。
 
     // 2. 导入账户
     final accountNameToId = await importAccounts(
@@ -268,27 +292,33 @@ class DataImportService {
     BaseRepository repo,
     List<ImportCategory> categories,
   ) async {
-    final categoryCache = <String, int>{}; // key: kind|name -> id
-
+    // 返回给交易导入做「分类名 → id」反查。分类名只在父级作用域内唯一，所以同一个
+    // kind|name 可能对应多行，取法统一为「一级优先」（与同步层 resolve 的规则一致）。
+    final categoryCache = <String, int>{};
     if (categories.isEmpty) return categoryCache;
     logger.info('CategoryImport', '开始导入分类: ${categories.length} 个');
     final sw = Stopwatch()..start();
     int created = 0;
 
     try {
-      // 获取所有现有分类
+      // 获取所有现有分类。一级按 kind|name 索引；二级必须带上父级 id，否则同名的
+      // 一级/二级互相遮蔽，导入时既漏建又挂错父级。
       final existingExpense = await repo.getTopLevelCategories('expense');
       final existingIncome = await repo.getTopLevelCategories('income');
-      final existingCategoryMap = <String, int>{};
-
-      for (final cat in [...existingExpense, ...existingIncome]) {
-        existingCategoryMap['${cat.kind}|${cat.name}'] = cat.id;
-        // 获取子分类
+      final existingTops = [...existingExpense, ...existingIncome];
+      final existingTopKeyToId = <String, int>{
+        for (final cat in existingTops) '${cat.kind}|${cat.name}': cat.id,
+      };
+      final existingSubKeyToId = <String, int>{};
+      for (final cat in existingTops) {
         final subCats = await repo.getSubCategories(cat.id);
         for (final sub in subCats) {
-          existingCategoryMap['${sub.kind}|${sub.name}'] = sub.id;
+          existingSubKeyToId['${sub.kind}|${cat.id}|${sub.name}'] = sub.id;
         }
       }
+      // 二级解析父级只查这张「纯一级」表：混进二级的话，与父级同名的子分类会顶掉
+      // 父级，后面的兄弟分类就被挂到「儿子」底下去了。
+      final topLevelCache = <String, int>{...existingTopKeyToId};
 
       // 分离一级和二级分类
       final level1 = categories.where((c) => c.level == 1 || c.parentName == null).toList();
@@ -297,8 +327,9 @@ class DataImportService {
       // 导入一级分类
       for (final cat in level1) {
         final key = '${cat.kind}|${cat.name}';
-        if (existingCategoryMap.containsKey(key)) {
-          categoryCache[key] = existingCategoryMap[key]!;
+        final existingId = existingTopKeyToId[key];
+        if (existingId != null) {
+          categoryCache[key] = existingId;
         } else {
           final id = await repo.createCategory(
             name: cat.name,
@@ -307,6 +338,7 @@ class DataImportService {
             sortOrder: cat.sortOrder,
           );
           categoryCache[key] = id;
+          topLevelCache[key] = id;
           created++;
 
           // 如果有自定义图标信息，更新图标
@@ -325,32 +357,38 @@ class DataImportService {
       // 导入二级分类
       for (final cat in level2) {
         final key = '${cat.kind}|${cat.name}';
-        if (existingCategoryMap.containsKey(key)) {
-          categoryCache[key] = existingCategoryMap[key]!;
+        final parentKey = '${cat.kind}|${cat.parentName}';
+        final parentId = topLevelCache[parentKey];
+        if (parentId == null) {
+          logger.warning('CategoryImport',
+              '找不到父分类「${cat.parentName}」，跳过二级分类: ${cat.name}');
+          continue;
+        }
+        final scopedKey = '${cat.kind}|$parentId|${cat.name}';
+        final existingId = existingSubKeyToId[scopedKey];
+        if (existingId != null) {
+          categoryCache.putIfAbsent(key, () => existingId);
         } else {
-          // 查找父分类ID
-          final parentKey = '${cat.kind}|${cat.parentName}';
-          final parentId = categoryCache[parentKey];
-          if (parentId != null) {
-            final id = await repo.createSubCategory(
-              parentId: parentId,
-              name: cat.name,
-              kind: cat.kind,
-              icon: cat.icon,
-              sortOrder: cat.sortOrder,
-            );
-            categoryCache[key] = id;
+          final id = await repo.createSubCategory(
+            parentId: parentId,
+            name: cat.name,
+            kind: cat.kind,
+            icon: cat.icon,
+            sortOrder: cat.sortOrder,
+          );
+          existingSubKeyToId[scopedKey] = id;
+          categoryCache.putIfAbsent(key, () => id);
+          created++;
 
-            // 如果有自定义图标信息，更新图标
-            if (cat.iconType != null && cat.iconType != 'material') {
-              await repo.updateCategoryIcon(
-                id,
-                iconType: cat.iconType!,
-                icon: cat.icon,
-                customIconPath: cat.customIconPath,
-                communityIconId: cat.communityIconId,
-              );
-            }
+          // 如果有自定义图标信息，更新图标
+          if (cat.iconType != null && cat.iconType != 'material') {
+            await repo.updateCategoryIcon(
+              id,
+              iconType: cat.iconType!,
+              icon: cat.icon,
+              customIconPath: cat.customIconPath,
+              communityIconId: cat.communityIconId,
+            );
           }
         }
       }

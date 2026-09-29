@@ -45,6 +45,37 @@ final countsAllProvider =
   return res;
 });
 
+// 统计：全部账本的结余合计。
+//
+// 逐本调 getLedgerStats 再相加，而不是复用下面 allAccountsTotalStatsProvider 的
+// 「所有账户余额之和」：那份收支统计要求交易必须绑账户（t.accountId.isNotNull），
+// 没选账户的收支不计入，还会排除共享账本，口径是「账户」而不是「账本」。跟上方那格
+// 「账本结余」并排显示会出现两个互相矛盾的数。
+//
+// 各账本币种虽不同，但可以直接相加、**不要再乘一次汇率**：getLedgerStats 读的是交易的
+// nativeAmount（记账时已按主币种折算的折叠值，见 local_ledger_repository 里的注释），
+// 所以每本的 balance 本来就是主币种口径。这里再套一层 effectiveRates 会变成双重折算，
+// 数字偏大且改主币种时不跟着动。展示用的币种因此取 baseCurrency。
+final allLedgersBalanceProvider =
+    FutureProvider.autoDispose<double>((ref) async {
+  final repo = ref.watch(repositoryProvider);
+  ref.watch(statsRefreshProvider);
+  final link = ref.keepAlive();
+  ref.onDispose(() => link.close());
+  final accountFeatureEnabled =
+      await ref.watch(accountFeatureEnabledProvider.future);
+
+  var sum = 0.0;
+  for (final ledger in await repo.getAllLedgers()) {
+    final stats = await repo.getLedgerStats(
+      ledgerId: ledger.id,
+      accountFeatureEnabled: accountFeatureEnabled,
+    );
+    sum += stats.balance;
+  }
+  return sum;
+});
+
 // 统计：当前账本总余额
 final currentBalanceProvider =
     FutureProvider.family.autoDispose<double, int>((ref, ledgerId) async {

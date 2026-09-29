@@ -50,6 +50,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
     'note': null,
     'tags': null,                // 标签（逗号分隔）
     'attachments': null,         // 附件文件名（逗号分隔）
+    'ledger': null,              // 多账本导入：账本归属列
   };
   bool importing = false;
   int ok = 0, fail = 0, skipped = 0; // skipped: 跳过的非收支类型记录
@@ -484,6 +485,9 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
     // 收集跳过的类型（用于提示用户）
     final Map<String, int> skippedTypes = {};
 
+    // 受本次导入影响的账本集合（多账本文件会有多个），用于导入后逐个刷新/上推。
+    final touchedLedgerIds = <int>{};
+
     try {
       // 使用统一导入服务：将CSV数据转换为ImportData格式
       final importData = _buildImportDataFromCsv(
@@ -495,40 +499,82 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
         ledgerCurrency: ledgerCurrency,
       );
 
-      // 调用统一导入服务
-      final result = await dataImportService.importData(
-        repo,
-        ledgerId,
-        importData,
-        defaultCurrency: ledgerCurrency,
-        onProgress: (processed, progressTotal) {
-          done = processed;
-          // 更新全局进度
-          container.read(importProgressProvider.notifier).state = ImportProgress(
-            running: true,
-            total: total,
-            done: done,
-            ok: ok,
-            fail: fail,
-          );
-          if (mounted) setState(() {});
-        },
-      );
+      // 按账本归属分组。归属信息来自导出 CSV 的「账本」列，或 xlsx 合并时注入的
+      // sheet 名列。整列都为空时（单账本文件、旧格式）只会有一个 null 分组，走的
+      // 就是改动前那条路径，行为完全不变。
+      final groups = <String?, List<ImportTransaction>>{};
+      for (final tx in importData.transactions) {
+        final raw = tx.ledgerName?.trim() ?? '';
+        groups.putIfAbsent(raw.isEmpty ? null : raw, () => []).add(tx);
+      }
 
-      ok = result.inserted;
-      fail = result.failed;
+      var inserted = 0;
+      var failed = 0;
+      var groupIndex = 0;
+
+      for (final entry in groups.entries) {
+        final ledgerName = entry.key;
+        // 没有归属信息的行仍进当前账本，保持旧行为。
+        final targetLedgerId = ledgerName == null
+            ? ledgerId
+            : await dataImportService.ensureLedgerByName(
+                repo,
+                ledgerName,
+                currency: ledgerCurrency,
+              );
+        touchedLedgerIds.add(targetLedgerId);
+
+        // 账户/分类/标签都是 user-scoped 的全局资源，随第一组导入一次即可；
+        // 每组都导一遍会重复建资源。
+        final isFirstGroup = groupIndex++ == 0;
+        final groupData = ImportData(
+          accounts: isFirstGroup ? importData.accounts : const [],
+          categories: isFirstGroup ? importData.categories : const [],
+          tags: isFirstGroup ? importData.tags : const [],
+          transactions: entry.value,
+        );
+
+        // 调用统一导入服务
+        final result = await dataImportService.importData(
+          repo,
+          targetLedgerId,
+          groupData,
+          defaultCurrency: ledgerCurrency,
+          onProgress: (processed, progressTotal) {
+            done = processed;
+            // 更新全局进度
+            container.read(importProgressProvider.notifier).state = ImportProgress(
+              running: true,
+              total: total,
+              done: done,
+              ok: ok,
+              fail: fail,
+            );
+            if (mounted) setState(() {});
+          },
+        );
+
+        inserted += result.inserted;
+        failed += result.failed;
+      }
+
+      ok = inserted;
+      fail = failed;
       skipped = skippedTypes.values.fold(0, (a, b) => a + b);
       done = total;
 
       // 显式触发一次同步上推。SyncCoordinator 监听 local_changes 表已经会
       // 自动调度,这里作为兜底:provider 重建瞬间 / 边界条件下 coordinator
-      // 还没就位时,UI 显式触发也能把刚导入的数据推上云端。
+      // 还没就位时,UI 显式触发也能把刚导入的数据推上云端。多账本导入时每个
+      // 被写到的账本都要各推一次，否则其余账本不会上云。
       // fire-and-forget:不阻塞导入完成动画。
-      try {
-        // ignore: unawaited_futures
-        PostProcessor.syncC(container, ledgerId: ledgerId);
-      } catch (_) {
-        // 忽略同步触发错误,导入本身已经成功
+      for (final touchedId in touchedLedgerIds) {
+        try {
+          // ignore: unawaited_futures
+          PostProcessor.syncC(container, ledgerId: touchedId);
+        } catch (_) {
+          // 忽略同步触发错误,导入本身已经成功
+        }
       }
     } catch (e) {
       // 导入失败
@@ -562,8 +608,12 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
         try {
           container.read(importProgressProvider.notifier).state =
               ImportProgress.empty;
-          // 刷新"我的"页统计（笔数/天数）
-          container.invalidate(countsForLedgerProvider(ledgerId));
+          // 刷新本次写到的每个账本的统计（笔数/天数）。多账本导入时只刷当前账本，
+          // 其余账本会继续显示旧数字。异常提前退出时集合可能为空，兜底刷当前账本。
+          for (final touchedId in
+              (touchedLedgerIds.isEmpty ? {ledgerId} : touchedLedgerIds)) {
+            container.invalidate(countsForLedgerProvider(touchedId));
+          }
           // 触发全局统计刷新（用于"我的"页顶部聚合信息）
           container.read(statsRefreshProvider.notifier).state++;
           // 触发一次同步状态刷新（UI 端会复用缓存避免闪烁）
@@ -832,6 +882,8 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
       final note = getBy('note');
       final tagsStr = getBy('tags');
       final attachmentsStr = getBy('attachments');
+      // 账本归属：导出 CSV 的「账本」列，或 xlsx 合并时注入的 sheet 名列。
+      final ledgerName = getBy('ledger');
 
       // 类型识别
       final typeStr = typeRaw.trim().toLowerCase();
@@ -920,6 +972,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
         toAccountName: type == 'transfer' ? toAccountName : null,
         tagNames: tagNames,
         attachments: attachments,
+        ledgerName: ledgerName,
       ));
     }
 

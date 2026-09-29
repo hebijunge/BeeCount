@@ -1,18 +1,25 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:csv/csv.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import '../../providers.dart';
-import '../../data/repositories/base_repository.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
 import '../../data/db.dart';
+import '../../data/repositories/base_repository.dart';
+import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
+import '../../services/export/transaction_export_service.dart';
+import '../../services/export/xlsx_workbook_writer.dart';
 import '../../widgets/ui/ui.dart';
-import '../../utils/category_utils.dart';
+import 'export_preview_page.dart';
+
+/// 导出落盘格式。
+enum ExportFormat { csv, excel }
 
 class ExportPage extends ConsumerStatefulWidget {
   const ExportPage({super.key});
@@ -25,49 +32,168 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   double progress = 0;
   String? savedPath;
 
+  ExportFormat _format = ExportFormat.excel;
+
+  /// null 表示用户还没手动选过，此时按「当前账本」作默认勾选。
+  Set<int>? _selectedLedgerIds;
+
+  /// 导出列勾选，默认「时间 / 备注 / 金额」。金额必选在服务层兜底，UI 里也不给取消。
+  Set<ExportColumn> _columns = ExportColumn.defaultSelected;
+
+  /// 用户勾过的账本集合；没勾过则回落到当前账本，保持旧版「只导当前账本」的行为。
+  Set<int> _effectiveSelection(List<Ledger> ledgers, int currentLedgerId) {
+    if (_selectedLedgerIds != null) return _selectedLedgerIds!;
+    if (ledgers.isEmpty) return const {};
+    if (ledgers.any((l) => l.id == currentLedgerId)) return {currentLedgerId};
+    return {ledgers.first.id};
+  }
+
+  /// 按账本表的顺序输出勾选的 id，保证 sheet 顺序稳定、不随点击次序变化。
+  List<int> _orderedIds(List<Ledger> ledgers, Set<int> selected) =>
+      ledgers.where((l) => selected.contains(l.id)).map((l) => l.id).toList();
+
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
-    final ledgerId = ref.watch(currentLedgerIdProvider);
+    final currentLedgerId = ref.watch(currentLedgerIdProvider);
+    final ledgers = ref.watch(ledgersStreamProvider).valueOrNull ?? const [];
+    final l10n = AppLocalizations.of(context);
+    final selected = _effectiveSelection(ledgers, currentLedgerId);
+    final ordered = _orderedIds(ledgers, selected);
+
     return Scaffold(
       body: Column(
         children: [
-          PrimaryHeader(title: AppLocalizations.of(context).exportTitle, showBack: true),
+          PrimaryHeader(title: l10n.exportTitle, showBack: true),
           Expanded(
-            child: Padding(
+            child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context).exportDescription),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: exporting ? null : () => _export(repo, ledgerId),
-                    icon: const Icon(Icons.save_alt_outlined),
-                    label: Text(Platform.isIOS ? AppLocalizations.of(context).exportButtonIOS : AppLocalizations.of(context).exportButtonAndroid),
-                  ),
-                  const SizedBox(height: 16),
-                  if (exporting)
-                    Row(
-                      children: [
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: LinearProgressIndicator(
-                              value: progress == 0 ? null : progress),
-                        ),
-                      ],
+              children: [
+                Text(l10n.exportDescription),
+                const SizedBox(height: 16),
+                Text(l10n.exportFormatLabel,
+                    style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                _FormatOption(
+                  title: l10n.exportFormatExcel,
+                  subtitle: l10n.exportFormatExcelHint,
+                  selected: _format == ExportFormat.excel,
+                  onTap: () => setState(() => _format = ExportFormat.excel),
+                ),
+                const SizedBox(height: 8),
+                _FormatOption(
+                  title: l10n.exportFormatCsv,
+                  subtitle: l10n.exportFormatCsvHint,
+                  selected: _format == ExportFormat.csv,
+                  onTap: () => setState(() => _format = ExportFormat.csv),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(l10n.exportLedgersLabel,
+                          style: Theme.of(context).textTheme.labelLarge),
                     ),
-                  if (savedPath != null) ...[
-                    const SizedBox(height: 12),
-                    Text(AppLocalizations.of(context).exportSavedTo(savedPath!)),
+                    if (ledgers.length > 1)
+                      TextButton(
+                        onPressed: exporting
+                            ? null
+                            : () => setState(() {
+                                  _selectedLedgerIds =
+                                      ledgers.map((l) => l.id).toSet();
+                                }),
+                        child: Text(l10n.exportAllLedgers),
+                      ),
                   ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final ledger in ledgers)
+                      FilterChip(
+                        label: Text(ledger.name),
+                        selected: selected.contains(ledger.id),
+                        onSelected: exporting
+                            ? null
+                            : (on) => setState(() {
+                                  final next = {...selected};
+                                  if (on) {
+                                    next.add(ledger.id);
+                                  } else {
+                                    next.remove(ledger.id);
+                                  }
+                                  _selectedLedgerIds = next;
+                                }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(l10n.exportColumnsLabel,
+                    style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final column in ExportColumn.values)
+                      FilterChip(
+                        label: Text(column.headerText(l10n)),
+                        selected: _columns.contains(column) || column.isRequired,
+                        onSelected: exporting || column.isRequired
+                            ? null
+                            : (on) => setState(() {
+                                  final next = {..._columns};
+                                  if (on) {
+                                    next.add(column);
+                                  } else {
+                                    next.remove(column);
+                                  }
+                                  _columns = next;
+                                }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(l10n.exportColumnsHint,
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: exporting || ordered.isEmpty
+                      ? null
+                      : () => _openPreview(repo, ordered),
+                  icon: const Icon(Icons.save_alt_outlined),
+                  label: Text(Platform.isIOS
+                      ? l10n.exportButtonIOS
+                      : l10n.exportButtonAndroid),
+                ),
+                if (ordered.isEmpty && ledgers.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(l10n.exportNoLedgerSelected),
+                  ),
+                const SizedBox(height: 16),
+                if (exporting)
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: LinearProgressIndicator(
+                            value: progress == 0 ? null : progress),
+                      ),
+                    ],
+                  ),
+                if (savedPath != null) ...[
+                  const SizedBox(height: 12),
+                  Text(l10n.exportSavedTo(savedPath!)),
                 ],
-              ),
+              ],
             ),
           )
         ],
@@ -75,212 +201,178 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     );
   }
 
-  Future<void> _export(BaseRepository repo, int ledgerId) async {
+  /// 先弹预览，用户确认后才真正落盘。
+  ///
+  /// 预览展示的是完整真实数据，但落盘仍走 _export 重新取数 —— 预览只是给人看的同一
+  /// 份算法产物，不直接拿来写文件。
+  Future<void> _openPreview(BaseRepository repo, List<int> ledgerIds) async {
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ExportPreviewPage(
+          repository: repo,
+          ledgerIds: ledgerIds,
+          asExcel: _format == ExportFormat.excel,
+          columns: {..._columns},
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+    await _export(repo, ledgerIds);
+  }
+
+  Future<void> _export(BaseRepository repo, List<int> ledgerIds) async {
     try {
       setState(() {
         exporting = true;
         progress = 0;
         savedPath = null;
       });
-      String directory;
-      bool shareAfter = false;
-      if (Platform.isIOS) {
-        // iOS: 写入应用文档目录，然后使用系统分享
-        final docDir = await getApplicationDocumentsDirectory();
-        directory = docDir.path;
-        shareAfter = true;
-      } else {
-        // Android: 直接保存到公共 Download/BeeCount 目录
-        const downloadPath = '/storage/emulated/0/Download/BeeCount';
-        final dir = Directory(downloadPath);
-        if (!await dir.exists()) {
-          await dir.create(recursive: true);
-        }
-        directory = downloadPath;
-      }
 
-      // 获取交易和分类数据
-      final transactionsWithCategory = await repo.transactionsWithCategoryAll(ledgerId: ledgerId).first;
-      final total = transactionsWithCategory.length;
-      final rows = <List<dynamic>>[];
+      // context 只在 await 之前取用，先把 l10n 与取数服务装配好。
       final l10n = AppLocalizations.of(context);
-      rows.add([
-        l10n.exportCsvHeaderType,
-        l10n.exportCsvHeaderCategory,
-        l10n.exportCsvHeaderSubCategory, // 二级分类名称
-        l10n.exportCsvHeaderAmount,
-        l10n.exportCsvHeaderCurrency, // v30 多币种:交易原币种(反馈10)
-        l10n.exportCsvHeaderAccount,
-        l10n.exportCsvHeaderFromAccount, // 转出账户
-        l10n.exportCsvHeaderToAccount,   // 转入账户
-        l10n.exportCsvHeaderNote,
-        l10n.exportCsvHeaderTime,
-        l10n.exportCsvHeaderTags,
-        l10n.exportCsvHeaderAttachments, // 附件文件名（逗号分隔）
-      ]);
+      final service = TransactionExportService(
+        repository: repo,
+        l10n: l10n,
+        context: context,
+      );
 
-      // 批量获取所有交易的标签
-      final transactionIds = transactionsWithCategory.map((tx) => tx.t.id).toList();
-      final tagsMap = await repo.getTagsForTransactions(transactionIds);
+      final directory = await _prepareDirectory();
+      final shareAfter = Platform.isIOS;
+      final asExcel = _format == ExportFormat.excel;
 
-      // 批量获取所有交易的附件
-      final attachmentsMap = await repo.getAttachmentsForTransactions(transactionIds);
-
-      // 缓存所有账户信息，避免重复查询
-      final allAccounts = await repo.getAllAccounts();
-      final accountMap = {for (var acc in allAccounts) acc.id: acc};
-
-      // v30 多币种:账本本位币(currencyCode 为 NULL 的历史行按账户/本位币兜底,
-      // 与统计读取端同语义 —— 导出自包含,回导不丢币种)
-      final ledgerData = await repo.getLedgerById(ledgerId);
-      final ledgerBase =
-          ((ledgerData?.currency.isNotEmpty ?? false) ? ledgerData!.currency : 'CNY')
-              .toUpperCase();
-
-      // 缓存所有分类信息（包括父分类）
-      final incomeCategories = await repo.getTopLevelCategories('income');
-      final expenseCategories = await repo.getTopLevelCategories('expense');
-      final allCategories = <int, Category>{};
-      for (final cat in [...incomeCategories, ...expenseCategories]) {
-        allCategories[cat.id] = cat;
-        // 获取子分类
-        final subCategories = await repo.getSubCategories(cat.id);
-        for (final subCat in subCategories) {
-          allCategories[subCat.id] = subCat;
-        }
+      // 多账本时 CSV 靠「账本」列区分，Excel 靠 sheet 区分，所以只有 CSV 需要加列。
+      final multiLedger = ledgerIds.length > 1;
+      final sheets = <LedgerExportSheet>[];
+      for (var i = 0; i < ledgerIds.length; i++) {
+        final sheet = await service.buildSheet(
+          ledgerIds[i],
+          includeLedgerColumn: multiLedger && !asExcel,
+          padTimeCell: !asExcel,
+          columns: _columns,
+          onProgress: (ratio) {
+            if (!mounted) return;
+            setState(() => progress = (i + ratio) / ledgerIds.length);
+          },
+        );
+        sheets.add(sheet);
       }
+      if (!mounted) return;
 
-      for (int i = 0; i < transactionsWithCategory.length; i++) {
-        final txWithCat = transactionsWithCategory[i];
-        final t = txWithCat.t;
-        final c = txWithCat.category;
-        final a = t.accountId != null ? accountMap[t.accountId] : null;
-        // 使用完整的时间格式，包含年份和秒，添加前导空格增加列宽
-        final timeStr = () {
-          try {
-            final localTime = t.happenedAt.toLocal();
-            // 完整时间格式: YYYY-MM-DD HH:mm:ss，前面添加空格增加列宽
-            return '  ${localTime.year}-${localTime.month.toString().padLeft(2, '0')}-${localTime.day.toString().padLeft(2, '0')} ${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}:${localTime.second.toString().padLeft(2, '0')}  ';
-          } catch (e) {
-            return '';
-          }
-        }();
-        final typeStr = _getTypeDisplayName(t.type);
-
-        // 对于转账类型，需要特殊处理账户信息
-        String accountName;
-        String fromAccountName;
-        String toAccountName;
-        String categoryName;
-        String subCategoryName;
-
-        if (t.type == 'transfer') {
-          // 转账记录：账户列留空，填充转出账户和转入账户
-          accountName = '';
-          final fromAccount = accountMap[t.accountId];
-          final toAccount = accountMap[t.toAccountId];
-          fromAccountName = fromAccount?.name ?? '';
-          toAccountName = toAccount?.name ?? '';
-          categoryName = ''; // 转账没有分类
-          subCategoryName = '';
-        } else {
-          // 收入或支出：正常填充账户列，转出转入账户留空
-          accountName = a?.name ?? '';
-          fromAccountName = '';
-          toAccountName = '';
-
-          // 处理分类信息
-          if (c != null) {
-            if (c.level == 2 && c.parentId != null) {
-              // 二级分类：分类列填一级分类名称，二级分类列填当前分类名称
-              final parentCategory = allCategories[c.parentId];
-              categoryName = CategoryUtils.getDisplayName(parentCategory?.name, context);
-              subCategoryName = CategoryUtils.getDisplayName(c.name, context);
-            } else {
-              // 一级分类：分类列填当前分类，二级分类列留空
-              categoryName = CategoryUtils.getDisplayName(c.name, context);
-              subCategoryName = '';
-            }
-          } else {
-            categoryName = '';
-            subCategoryName = '';
-          }
-        }
-
-        // 获取该交易的标签，用逗号分隔
-        final transactionTags = tagsMap[t.id] ?? [];
-        final tagsStr = transactionTags.map((tag) => tag.name).join(',');
-
-        // 获取该交易的附件，用逗号分隔文件名
-        final transactionAttachments = attachmentsMap[t.id] ?? [];
-        final attachmentsStr = transactionAttachments.map((a) => a.fileName).join(',');
-
-        final currencyStr = (t.currencyCode ??
-                (a?.currency.isNotEmpty ?? false ? a!.currency : null) ??
-                ledgerBase)
-            .toUpperCase();
-
-        rows.add([
-          typeStr,
-          categoryName,
-          subCategoryName,
-          t.amount.toStringAsFixed(2),
-          currencyStr,
-          accountName,
-          fromAccountName,
-          toAccountName,
-          t.note ?? '',
-          timeStr,
-          tagsStr,
-          attachmentsStr,
-        ]);
-        if (i % 50 == 0) {
-          setState(() => progress = (i + 1) / (total == 0 ? 1 : total));
-        }
-      }
-
-      final csvStr = const ListToCsvConverter(eol: '\n').convert(rows);
       final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final path = p.join(directory, 'beecount_$ts.csv');
-      
-      // 添加UTF-8 BOM标记，确保Excel正确识别中文编码
-      const utf8Bom = '\uFEFF';
-      await File(path).writeAsString(utf8Bom + csvStr, encoding: Encoding.getByName('utf-8')!);
+      final String path;
+      if (asExcel) {
+        final bytes = await buildWorkbookBytes(sheets);
+        path = p.join(directory, 'beecount_$ts.xlsx');
+        await File(path).writeAsBytes(bytes);
+      } else {
+        // 第一个账本提供表头，其余只追加数据行，避免一张表里出现多次表头。
+        final rows = <List<String>>[];
+        for (final sheet in sheets) {
+          rows.addAll(rows.isEmpty
+              ? sheet.rows
+              : sheet.rows.skip(1));
+        }
+        final csvStr = const ListToCsvConverter(eol: '\n').convert(rows);
+        path = p.join(directory, 'beecount_$ts.csv');
+        // UTF-8 BOM 让 Excel 正确识别中文编码。
+        final utf8Bom = String.fromCharCode(0xFEFF);
+        await File(path)
+            .writeAsString(utf8Bom + csvStr, encoding: Encoding.getByName('utf-8')!);
+      }
+
+      if (!mounted) return;
       setState(() {
         savedPath = path;
         exporting = false;
         progress = 1;
       });
-      if (!mounted) return;
-      final l10nDialog = AppLocalizations.of(context);
+
       if (shareAfter) {
-        // 触发分享面板
-        await Share.shareXFiles([XFile(path)], text: l10nDialog.exportShareText);
+        await Share.shareXFiles([XFile(path)], text: l10n.exportShareText);
+        if (!mounted) return;
         await AppDialog.info(context,
-            title: l10nDialog.exportSuccessTitle, message: l10nDialog.exportSuccessMessageIOS(path));
+            title: l10n.exportSuccessTitle,
+            message: l10n.exportSuccessMessageIOS(path));
       } else {
-        await AppDialog.info(context, title: l10nDialog.exportSuccessTitle, message: l10nDialog.exportSuccessMessageAndroid(path));
+        await AppDialog.info(context,
+            title: l10n.exportSuccessTitle,
+            message: l10n.exportSuccessMessageAndroid(path));
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => exporting = false);
       final l10nError = AppLocalizations.of(context);
-      await AppDialog.error(context, title: l10nError.exportFailedTitle, message: e.toString());
+      await AppDialog.error(context,
+          title: l10nError.exportFailedTitle, message: e.toString());
     }
   }
 
-  /// 将英文类型转换为中文显示名称
-  String _getTypeDisplayName(String type) {
-    final l10nType = AppLocalizations.of(context);
-    switch (type) {
-      case 'income':
-        return l10nType.exportTypeIncome;
-      case 'expense':
-        return l10nType.exportTypeExpense;
-      case 'transfer':
-        return l10nType.exportTypeTransfer;
-      default:
-        return type; // 兜底返回原始值
+  /// iOS 写文档目录后走分享面板；Android 直接落到公共 Download/BeeCount。
+  Future<String> _prepareDirectory() async {
+    if (Platform.isIOS) {
+      final docDir = await getApplicationDocumentsDirectory();
+      return docDir.path;
     }
+    const downloadPath = '/storage/emulated/0/Download/BeeCount';
+    final dir = Directory(downloadPath);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return downloadPath;
+  }
+}
+
+class _FormatOption extends StatelessWidget {
+  const _FormatOption({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              size: 20,
+              color: selected ? scheme.primary : scheme.outline,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: Theme.of(context).textTheme.bodyLarge),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

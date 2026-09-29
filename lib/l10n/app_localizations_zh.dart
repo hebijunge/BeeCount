@@ -1491,6 +1491,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineCurrentBalance => '账本结余';
 
   @override
+  String get mineAllLedgersSummary => '全部账本汇总';
+
+  @override
   String get mineCloudService => '云服务';
 
   @override
@@ -2732,7 +2735,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportTitle => '导出';
 
   @override
-  String get exportDescription => '支持导出的数据类型：\n• 交易记录（收入/支出/转账）\n• 分类信息\n• 账户信息\n\n点击下方按钮选择保存位置，开始导出当前账本为 CSV 文件。';
+  String get exportDescription => '支持导出的数据类型：\n• 交易记录（收入/支出/转账）\n• 分类信息\n• 账户信息\n\n在下方选择要导出的账本和格式：Excel 会把每个账本各放一张工作表，CSV 则合并成一张表并用「账本」列区分。';
 
   @override
   String get exportButtonIOS => '导出并分享';
@@ -2777,6 +2780,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportCsvHeaderAttachments => '附件';
+
+  @override
+  String get exportCsvHeaderLedger => '账本';
+
+  @override
+  String get exportFormatLabel => '导出格式';
+
+  @override
+  String get exportFormatCsv => 'CSV';
+
+  @override
+  String get exportFormatExcel => 'Excel';
+
+  @override
+  String get exportFormatExcelHint => '每个账本一张工作表';
+
+  @override
+  String get exportFormatCsvHint => '多个账本合并成一张表，用「账本」列区分';
+
+  @override
+  String get exportLedgersLabel => '导出账本';
+
+  @override
+  String get exportAllLedgers => '全部账本';
+
+  @override
+  String get exportNoLedgerSelected => '请至少选择一个账本';
+
+  @override
+  String get exportColumnsLabel => '导出列';
+
+  @override
+  String get exportColumnsHint => '金额列始终包含。不勾「类型」时，回导会按支出处理；不勾分类、账户等列，这些信息就不会写进文件。';
+
+  @override
+  String get exportPreviewTitle => '导出预览';
+
+  @override
+  String get exportPreviewConfirm => '确认导出';
+
+  @override
+  String exportPreviewRowCount(Object total) {
+    return '共 $total 笔';
+  }
+
+  @override
+  String get exportPreviewEmptyLedger => '该账本暂无交易';
 
   @override
   String get exportShareText => 'BeeCount 导出文件';
@@ -9356,6 +9406,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineCurrentBalance => '帳本結餘';
 
   @override
+  String get mineAllLedgersSummary => '全部帳本匯總';
+
+  @override
   String get mineCloudService => '雲服務';
 
   @override
@@ -10597,7 +10650,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exportTitle => '匯出';
 
   @override
-  String get exportDescription => '支援匯出的資料類型：\n• 交易記錄（收入／支出／轉帳）\n• 分類資訊\n• 帳戶資訊\n\n點擊下方按鈕選擇儲存位置，開始匯出目前帳本為 CSV 檔案。';
+  String get exportDescription => '支援匯出的資料類型：\n• 交易記錄（收入／支出／轉帳）\n• 分類資訊\n• 帳戶資訊\n\n在下方選擇要匯出的帳本與格式：Excel 會將每個帳本各放一個工作表，CSV 則合併成一個工作表並以「帳本」欄區分。';
 
   @override
   String get exportButtonIOS => '匯出並分享';
@@ -10642,6 +10695,53 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportCsvHeaderAttachments => '附件';
+
+  @override
+  String get exportCsvHeaderLedger => '帳本';
+
+  @override
+  String get exportFormatLabel => '匯出格式';
+
+  @override
+  String get exportFormatCsv => 'CSV';
+
+  @override
+  String get exportFormatExcel => 'Excel';
+
+  @override
+  String get exportFormatExcelHint => '每個帳本一個工作表';
+
+  @override
+  String get exportFormatCsvHint => '多個帳本合併為一個工作表，以「帳本」欄區分';
+
+  @override
+  String get exportLedgersLabel => '匯出帳本';
+
+  @override
+  String get exportAllLedgers => '全部帳本';
+
+  @override
+  String get exportNoLedgerSelected => '請至少選擇一個帳本';
+
+  @override
+  String get exportColumnsLabel => '匯出欄位';
+
+  @override
+  String get exportColumnsHint => '金額欄位一律包含。未勾「類型」時，回匯會按支出處理；未勾分類、帳戶等欄位，這些資訊不會寫進檔案。';
+
+  @override
+  String get exportPreviewTitle => '匯出預覽';
+
+  @override
+  String get exportPreviewConfirm => '確認匯出';
+
+  @override
+  String exportPreviewRowCount(Object total) {
+    return '共 $total 筆';
+  }
+
+  @override
+  String get exportPreviewEmptyLedger => '該帳本暫無交易';
 
   @override
   String get exportShareText => 'BeeCount 匯出檔案';

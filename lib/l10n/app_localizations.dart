@@ -2858,6 +2858,12 @@ abstract class AppLocalizations {
   /// **'Ledger balance'**
   String get mineCurrentBalance;
 
+  /// No description provided for @mineAllLedgersSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'All ledgers'**
+  String get mineAllLedgersSummary;
+
   /// No description provided for @mineCloudService.
   ///
   /// In en, this message translates to:
@@ -5207,7 +5213,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportDescription.
   ///
   /// In en, this message translates to:
-  /// **'Supported export types:\n• Transactions (Income/Expense/Transfer)\n• Categories\n• Accounts\n\nClick the button below to select save location and export current ledger to CSV file.'**
+  /// **'Supported export types:\n• Transactions (Income/Expense/Transfer)\n• Categories\n• Accounts\n\nPick the ledgers and the export format below. Excel puts every selected ledger on its own sheet; CSV merges them into one table with a Ledger column.'**
   String get exportDescription;
 
   /// No description provided for @exportButtonIOS.
@@ -5293,6 +5299,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Attachments'**
   String get exportCsvHeaderAttachments;
+
+  /// No description provided for @exportCsvHeaderLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get exportCsvHeaderLedger;
+
+  /// No description provided for @exportFormatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get exportFormatLabel;
+
+  /// No description provided for @exportFormatCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV'**
+  String get exportFormatCsv;
+
+  /// No description provided for @exportFormatExcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Excel'**
+  String get exportFormatExcel;
+
+  /// No description provided for @exportFormatExcelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One sheet per ledger'**
+  String get exportFormatExcelHint;
+
+  /// No description provided for @exportFormatCsvHint.
+  ///
+  /// In en, this message translates to:
+  /// **'All ledgers in one sheet, with a Ledger column'**
+  String get exportFormatCsvHint;
+
+  /// No description provided for @exportLedgersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledgers'**
+  String get exportLedgersLabel;
+
+  /// No description provided for @exportAllLedgers.
+  ///
+  /// In en, this message translates to:
+  /// **'All ledgers'**
+  String get exportAllLedgers;
+
+  /// No description provided for @exportNoLedgerSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one ledger to export'**
+  String get exportNoLedgerSelected;
+
+  /// No description provided for @exportColumnsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get exportColumnsLabel;
+
+  /// No description provided for @exportColumnsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount is always included. Without the type column, re-imports treat rows as expenses; leaving out category or account columns drops that data from the file.'**
+  String get exportColumnsHint;
+
+  /// No description provided for @exportPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export preview'**
+  String get exportPreviewTitle;
+
+  /// No description provided for @exportPreviewConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportPreviewConfirm;
+
+  /// No description provided for @exportPreviewRowCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{total} rows'**
+  String exportPreviewRowCount(Object total);
+
+  /// No description provided for @exportPreviewEmptyLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions in this ledger'**
+  String get exportPreviewEmptyLedger;
 
   /// No description provided for @exportShareText.
   ///

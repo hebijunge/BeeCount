@@ -47,6 +47,10 @@ import '../../services/system/update_service.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../donation/donation_page.dart';
 
+/// 「全部账本汇总」是否展开。跟 hideAmountsProvider 一样只放内存，重启回到默认展开，
+/// 不额外落盘 —— 这只是一个视图偏好，收起状态没必要跨启动保留。
+final allLedgersSummaryExpandedProvider = StateProvider<bool>((ref) => true);
+
 class MinePage extends ConsumerWidget {
   const MinePage({super.key});
 
@@ -542,6 +546,112 @@ class MinePage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 「我的」页的全部账本汇总区，整块可折叠。
+///
+/// 三个数字都是跨账本口径，跟上方当前账本那三格只是范围不同，所以标签复用同一套
+/// 文案、由区块标题来区分。结余那格走 [allLedgersBalanceProvider]，它已把各账本折算
+/// 到基准币种，所以币种取 baseCurrency 而不是当前账本的币种，否则会标错。
+class _AllLedgersSummarySection extends ConsumerWidget {
+  const _AllLedgersSummarySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final expanded = ref.watch(allLedgersSummaryExpandedProvider);
+    final counts = ref.watch(countsAllProvider);
+    final balanceAsync = ref.watch(allLedgersBalanceProvider);
+    final baseCurrency = ref.watch(baseCurrencyProvider).toUpperCase();
+
+    final day = counts.asData?.value.dayCount ?? 0;
+    final tx = counts.asData?.value.txCount ?? 0;
+    final balance = balanceAsync.asData?.value ?? 0.0;
+
+    final labelStyle = Theme.of(context)
+        .textTheme
+        .labelMedium
+        ?.copyWith(color: BeeTokens.textSecondary(context));
+    final numStyle = BeeTextTokens.strongTitle(context)
+        .copyWith(fontSize: 20, color: BeeTokens.textPrimary(context));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () =>
+              ref.read(allLedgersSummaryExpandedProvider.notifier).state =
+                  !expanded,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+            child: Row(
+              children: [
+                Icon(Icons.folder_shared_outlined,
+                    size: 18, color: BeeTokens.textSecondary(context)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.mineAllLedgersSummary,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(color: BeeTokens.textPrimary(context)),
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(Icons.expand_more,
+                      size: 20, color: BeeTokens.textSecondary(context)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (expanded) ...[
+          SizedBox(height: 10.0.scaled(context, ref)),
+          Row(
+            children: [
+              Expanded(
+                child: _StatCell(
+                  label: l10n.mineDaysCount,
+                  value: day.toString(),
+                  labelStyle: labelStyle,
+                  numStyle: numStyle,
+                  centered: true,
+                ),
+              ),
+              Expanded(
+                child: _StatCell(
+                  label: l10n.mineTotalRecords,
+                  value: tx.toString(),
+                  labelStyle: labelStyle,
+                  numStyle: numStyle,
+                  centered: true,
+                ),
+              ),
+              Expanded(
+                child: _StatCell(
+                  label: l10n.mineCurrentBalance,
+                  value: balance,
+                  isAmount: true,
+                  currencyCode: baseCurrency,
+                  labelStyle: labelStyle,
+                  numStyle: numStyle.copyWith(
+                    color: balance >= 0
+                        ? BeeTokens.textPrimary(context)
+                        : BeeTokens.error(context),
+                  ),
+                  centered: true,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
@@ -1211,6 +1321,9 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
                   ),
                 ],
               ),
+              SizedBox(height: 14.0.scaled(context, ref)),
+              // 全部账本汇总：整块可折叠，收起后只剩标题一行。
+              const _AllLedgersSummarySection(),
             ],
           ),
         ],

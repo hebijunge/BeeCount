@@ -258,6 +258,9 @@ final class AgentAppFacade {
     final localTools = LocalAgentTools(scope: scope, gateway: _toolGateway);
     final requestContext = Map<String, Object?>.of(context);
     requestContext['currentTime'] = DateTime.now().toIso8601String();
+    // 提示词构建器一直在读 context['ledger']，但此前没有任何地方写入这个键，模型
+    // 连当前账本叫什么都不知道，更没法按 ledgerIds 指定其他账本。这里把清单注入。
+    requestContext['ledger'] = await _ledgerContext(ledgerId);
     await _loadConversationHistory(
       conversationId: conversationId,
       requestContext: requestContext,
@@ -472,6 +475,29 @@ final class AgentAppFacade {
   /// example, “我是谁”) that shares no exact words with the saved memory
   /// (“用户的身份是笑”), so query-only retrieval would incorrectly report an
   /// empty memory context.
+  /// 注入提示词的账本上下文：当前在哪本、本机有哪几本、主币种是什么。
+  ///
+  /// 没有这份清单时模型无法把「生意那个账本」对应到 id，也就用不了跨账本查询。读
+  /// 取失败不能阻断对话 —— 至少还要报得出当前账本 id，所以退化成最小上下文。
+  Future<Map<String, Object?>> _ledgerContext(int currentLedgerId) async {
+    try {
+      final catalog = await _toolGateway.getLedgerCatalog();
+      final current =
+          catalog.where((ledger) => ledger.id == currentLedgerId).toList();
+      return {
+        'current': current.isEmpty
+            ? <String, Object?>{'id': currentLedgerId}
+            : current.first.toToolData(),
+        'all': [for (final ledger in catalog) ledger.toToolData()],
+        'baseCurrency': await _toolGateway.getBaseCurrency(),
+      };
+    } catch (_) {
+      return {
+        'current': <String, Object?>{'id': currentLedgerId},
+      };
+    }
+  }
+
   Future<List<AgentMemoryRecord>> _loadMemories({
     required int ledgerId,
     required String query,

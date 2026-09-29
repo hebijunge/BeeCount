@@ -12,7 +12,8 @@ final class LocalAgentTransactionSummaryDataSource {
   final BeeDatabase _database;
 
   Future<Map<String, Object?>> summarizeTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
+    required String baseCurrency,
     required DateTime start,
     required DateTime end,
     required Set<String> types,
@@ -31,18 +32,23 @@ final class LocalAgentTransactionSummaryDataSource {
       for (final type in _canonicalTypes)
         if (types.contains(type)) type,
     ];
-    final ledger = await (_database.select(_database.ledgers)
-          ..where((row) => row.id.equals(ledgerId)))
-        .getSingleOrNull();
+    final ledgers = await (_database.select(_database.ledgers)
+          ..where((row) => row.id.isIn(ledgerIds)))
+        .get();
+    // 单本沿用它的本位币，与改动前完全一致；跨本时金额取的是 native_amount（记账时
+    // 已折算到主币种），所以标的必须是主币种，不能拿其中任意一本冒充。
+    final effectiveCurrency = ledgers.length == 1
+        ? _currencyOr(ledgers.first.currency)
+        : _currencyOr(baseCurrency);
     final where = <String>[
-      't.ledger_id = ?',
+      't.ledger_id IN (${List.filled(ledgerIds.length, '?').join(', ')})',
       't.happened_at >= ?',
       't.happened_at < ?',
       't.type IN (${List.filled(effectiveTypes.length, '?').join(', ')})',
       if (!includeExcludedFromStats) 't.exclude_from_stats = 0',
     ];
     final variables = <d.Variable>[
-      d.Variable.withInt(ledgerId),
+      for (final ledgerId in ledgerIds) d.Variable.withInt(ledgerId),
       d.Variable.withDateTime(start),
       d.Variable.withDateTime(end),
       for (final type in effectiveTypes) d.Variable.withString(type),
@@ -121,7 +127,7 @@ final class LocalAgentTransactionSummaryDataSource {
       (group) => (group['key'] as Map<String, Object?>?)?['kind'] == 'other',
     );
     return {
-      'currency': _currencyOr(ledger?.currency),
+      'currency': effectiveCurrency,
       'periodStart': start.toIso8601String(),
       'periodEnd': end.toIso8601String(),
       'types': effectiveTypes,

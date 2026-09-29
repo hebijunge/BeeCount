@@ -155,11 +155,32 @@ final class AgentCategoryBudgetSummary {
       };
 }
 
+/// 账本清单条目。两个用途：注入上下文让模型知道本机有哪几本、各自本位币是什么，
+/// 以及校验模型传来的 ledgerIds 是否真实存在（不存在的必须剔除，不能拿去查库）。
+final class AgentLedgerSummary {
+  const AgentLedgerSummary({
+    required this.id,
+    required this.name,
+    required this.currency,
+  });
+
+  final int id;
+  final String name;
+  final String currency;
+
+  Map<String, Object?> toToolData() => {
+        'id': id,
+        'name': name,
+        'currency': currency,
+      };
+}
+
 final class AgentBudgetSummary {
   const AgentBudgetSummary({
     required this.daysRemaining,
     required this.dailyAvailable,
     this.currency = 'CNY',
+    this.ledgerName,
     this.total,
     this.categoryBudgets = const [],
   });
@@ -167,10 +188,14 @@ final class AgentBudgetSummary {
   final int daysRemaining;
   final double dailyAvailable;
   final String currency;
+
+  /// 跨账本查询时标明这份预算属于哪一本；单账本时为 null，输出保持原样。
+  final String? ledgerName;
   final AgentBudgetUsageSummary? total;
   final List<AgentCategoryBudgetSummary> categoryBudgets;
 
   Map<String, Object?> toToolData() => {
+        if (ledgerName != null) 'ledgerName': ledgerName,
         'currency': currency,
         'daysRemaining': daysRemaining,
         'dailyAvailable': dailyAvailable,
@@ -199,6 +224,7 @@ final class AgentRecurringTransactionSummary {
     this.endDate,
     this.lastGeneratedDate,
     this.note,
+    this.ledgerName,
   });
 
   final int? id;
@@ -218,11 +244,15 @@ final class AgentRecurringTransactionSummary {
   final DateTime? lastGeneratedDate;
   final String? note;
 
+  /// 跨账本查询时标明这条周期记账属于哪一本；单账本时为 null。
+  final String? ledgerName;
+
   Map<String, Object?> toToolData() => {
         'id': id,
         'type': type,
         'amount': amount,
         'currency': currency,
+        if (ledgerName != null) 'ledgerName': ledgerName,
         'category': category?.toToolData(),
         'account': account?.toToolData(),
         'toAccount': toAccount?.toToolData(),
@@ -269,13 +299,15 @@ final class AgentRecordToolResult {
 /// Narrow app-facing port so tools can be tested without a full repository
 /// mock and cannot access any cloud data path.
 abstract interface class LocalAgentToolGateway {
+  /// [ledgerIds] 是本次查询覆盖的账本。只读工具默认只含当前账本，模型可按需带上
+  /// 清单里的其他账本；实现方必须剔除不存在的 id，不能直接拿去查库。
   Future<List<AgentTransactionSummary>> queryTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
   });
   Future<Map<String, Object?>> summarizeTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
     required Set<String> types,
@@ -290,10 +322,17 @@ abstract interface class LocalAgentToolGateway {
     required bool includeExcludedFromStats,
     required int groupLimit,
   });
-  Future<AgentBudgetSummary> getBudgetStatus(int ledgerId);
+  Future<List<AgentBudgetSummary>> getBudgetStatus(List<int> ledgerIds);
   Future<String> getLedgerCurrency(int ledgerId);
+
+  /// 应用主币种。跨账本统计时金额取的是交易的 native_amount（记账时折算到主币种），
+  /// 所以多本一起汇总时标的必须是它，而不是其中某一个账本的本位币。
+  Future<String> getBaseCurrency();
+
+  /// 本机全部账本清单，用于注入上下文与校验 ledgerIds。
+  Future<List<AgentLedgerSummary>> getLedgerCatalog();
   Future<List<AgentRecurringTransactionSummary>> getRecurringTransactions(
-    int ledgerId,
+    List<int> ledgerIds,
   );
   Future<AgentRecordToolResult> recordTransaction({
     required int ledgerId,
@@ -317,6 +356,7 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
     required BeeDatabase database,
     required AiBookkeeper bookkeeper,
     required AgentMemoryRepository memoryRepository,
+    required this.baseCurrency,
   })  : _repository = repository,
         _summaryDataSource = LocalAgentTransactionSummaryDataSource(database),
         _bookkeeper = bookkeeper,
@@ -327,24 +367,56 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
   final AiBookkeeper _bookkeeper;
   final AgentMemoryRepository _memoryRepository;
 
+  /// 应用主币种的读取回调。主币种存在 SharedPreferences 里、由 Riverpod 的
+  /// baseCurrencyProvider 暴露，而 gateway 是不持有 ref 的纯类，所以由构造方注入。
+  /// 跨账本统计的金额是 native_amount（折算到主币种），报告币种时必须用它，不能拿
+  /// 其中某一个账本的本位币冒充。
+  final String Function() baseCurrency;
+
   @override
   Future<List<AgentTransactionSummary>> queryTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
   }) async {
-    final ledgerFuture = _repository.getLedgerById(ledgerId);
-    final transactions = await _repository.getTransactionsWithCategoryInRange(
-      ledgerId: ledgerId,
-      start: start,
-      end: end,
-    );
-    return _summarizeTransactions(transactions, ledger: await ledgerFuture);
+    // 逐本查再合并，而不是把多个 id 塞进一条 IN 查询：每条明细的 currency 取的是
+    // 它所在账本的本位币，分开查才能保持正确，跨账本时不会串币。
+    final results = <AgentTransactionSummary>[];
+    for (final ledgerId in ledgerIds) {
+      final ledgerFuture = _repository.getLedgerById(ledgerId);
+      final transactions = await _repository.getTransactionsWithCategoryInRange(
+        ledgerId: ledgerId,
+        start: start,
+        end: end,
+      );
+      results.addAll(await _summarizeTransactions(
+        transactions,
+        ledger: await ledgerFuture,
+      ));
+    }
+    return results;
   }
 
   @override
+  Future<List<AgentLedgerSummary>> getLedgerCatalog() async {
+    final ledgers = await _repository.getAllLedgers();
+    return [
+      for (final ledger in ledgers)
+        AgentLedgerSummary(
+          id: ledger.id,
+          name: ledger.name,
+          currency: _ledgerCurrency(ledger),
+        ),
+    ];
+  }
+
+  @override
+  Future<String> getBaseCurrency() async =>
+      _currencyOr(baseCurrency(), fallback: 'CNY');
+
+  @override
   Future<Map<String, Object?>> summarizeTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
     required Set<String> types,
@@ -360,7 +432,8 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
     required int groupLimit,
   }) =>
       _summaryDataSource.summarizeTransactions(
-        ledgerId: ledgerId,
+        ledgerIds: ledgerIds,
+        baseCurrency: baseCurrency(),
         start: start,
         end: end,
         types: types,
@@ -377,30 +450,40 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
       );
 
   @override
-  Future<AgentBudgetSummary> getBudgetStatus(int ledgerId) async {
-    final overview =
-        await _repository.getBudgetOverview(ledgerId, DateTime.now());
-    final ledger = await _repository.getLedgerById(ledgerId);
-    final total = overview.totalBudget;
-    return AgentBudgetSummary(
-      daysRemaining: overview.daysRemaining,
-      dailyAvailable: overview.dailyAvailable,
-      currency: _ledgerCurrency(ledger),
-      total: total == null ? null : _budgetUsage(total),
-      categoryBudgets: overview.categoryBudgets
-          .map(
-            (categoryBudget) => AgentCategoryBudgetSummary(
-              budgetId: categoryBudget.budgetId,
-              category: AgentCategoryReference(
-                id: categoryBudget.categoryId,
-                name: categoryBudget.categoryName,
-                icon: categoryBudget.categoryIcon,
+  Future<List<AgentBudgetSummary>> getBudgetStatus(
+    List<int> ledgerIds,
+  ) async {
+    // 预算是按账本设的，跨本只能逐本取。单本查询不标注归属，输出与改动前保持一致；
+    // 只有同时查多本时才需要 ledgerName 区分来源。
+    final labelLedgers = ledgerIds.length > 1;
+    final items = <AgentBudgetSummary>[];
+    for (final ledgerId in ledgerIds) {
+      final ledger = await _repository.getLedgerById(ledgerId);
+      final overview =
+          await _repository.getBudgetOverview(ledgerId, DateTime.now());
+      final total = overview.totalBudget;
+      items.add(AgentBudgetSummary(
+        ledgerName: labelLedgers ? ledger?.name : null,
+        daysRemaining: overview.daysRemaining,
+        dailyAvailable: overview.dailyAvailable,
+        currency: _ledgerCurrency(ledger),
+        total: total == null ? null : _budgetUsage(total),
+        categoryBudgets: overview.categoryBudgets
+            .map(
+              (categoryBudget) => AgentCategoryBudgetSummary(
+                budgetId: categoryBudget.budgetId,
+                category: AgentCategoryReference(
+                  id: categoryBudget.categoryId,
+                  name: categoryBudget.categoryName,
+                  icon: categoryBudget.categoryIcon,
+                ),
+                usage: _budgetUsage(categoryBudget.usage),
               ),
-              usage: _budgetUsage(categoryBudget.usage),
-            ),
-          )
-          .toList(),
-    );
+            )
+            .toList(),
+      ));
+    }
+    return items;
   }
 
   @override
@@ -409,8 +492,23 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
 
   @override
   Future<List<AgentRecurringTransactionSummary>> getRecurringTransactions(
-    int ledgerId,
+    List<int> ledgerIds,
   ) async {
+    final items = <AgentRecurringTransactionSummary>[];
+    // 与预算一致：单本不标注归属，跨本才带 ledgerName。
+    final labelLedgers = ledgerIds.length > 1;
+    for (final ledgerId in ledgerIds) {
+      items.addAll(
+        await _recurringForLedger(ledgerId, labelLedgers: labelLedgers),
+      );
+    }
+    return items;
+  }
+
+  Future<List<AgentRecurringTransactionSummary>> _recurringForLedger(
+    int ledgerId, {
+    required bool labelLedgers,
+  }) async {
     final ledgerFuture = _repository.getLedgerById(ledgerId);
     final categoriesFuture = _repository.getAllCategoriesIncludingShared();
     final rows = await _repository.getEnabledRecurringTransactions(ledgerId);
@@ -421,7 +519,8 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
       ],
     };
     final accountsFuture = _repository.getAccountsByIds(accountIds.toList());
-    final ledgerCurrency = _ledgerCurrency(await ledgerFuture);
+    final ledger = await ledgerFuture;
+    final ledgerCurrency = _ledgerCurrency(ledger);
     final categoriesById = {
       for (final category in await categoriesFuture) category.id: category,
     };
@@ -457,6 +556,7 @@ final class BeeCountLocalAgentToolGateway implements LocalAgentToolGateway {
           endDate: row.endDate,
           lastGeneratedDate: row.lastGeneratedDate,
           note: row.note,
+          ledgerName: labelLedgers ? ledger?.name : null,
         );
       },
     ).toList();
@@ -645,6 +745,9 @@ final class LocalAgentTools {
   static const _maximumRows = 20;
   static const _maximumRecurringTransactions = 20;
 
+  /// 单次查询允许覆盖的账本数上限，防止模型构造超长 IN 列表把查询放大。
+  static const _maximumLedgers = 20;
+
   final AgentScope scope;
   final LocalAgentToolGateway gateway;
   final Map<String, AgentRecordToolResult> _recordResults = {};
@@ -683,13 +786,15 @@ final class LocalAgentTools {
 
   Future<Map<String, Object?>> _queryTransactions(AgentToolCall call) async {
     final range = _rangeFor(call);
+    final ledgerIds = await _ledgerIdsFor(call);
     final transactions = await gateway.queryTransactions(
-      ledgerId: _ledgerId,
+      ledgerIds: ledgerIds,
       start: range.$1,
       end: range.$2,
     );
+    final allowed = ledgerIds.toSet();
     final items = transactions
-        .where((transaction) => transaction.ledgerId == _ledgerId)
+        .where((transaction) => allowed.contains(transaction.ledgerId))
         .take(_maximumRows)
         .map((transaction) => transaction.toToolData())
         .toList();
@@ -703,7 +808,7 @@ final class LocalAgentTools {
     _lastSummaryRange = range;
     final types = _summaryTypesFor(call);
     return gateway.summarizeTransactions(
-      ledgerId: _ledgerId,
+      ledgerIds: await _ledgerIdsFor(call),
       start: range.$1,
       end: range.$2,
       types: types,
@@ -721,15 +826,18 @@ final class LocalAgentTools {
     );
   }
 
-  Future<Map<String, Object?>> _budgetStatus(AgentToolCall call) async =>
-      gateway
-          .getBudgetStatus(_ledgerId)
-          .then((summary) => summary.toToolData());
+  Future<Map<String, Object?>> _budgetStatus(AgentToolCall call) async {
+    final rows = await gateway.getBudgetStatus(await _ledgerIdsFor(call));
+    return {
+      'items': rows.map((summary) => summary.toToolData()).toList(),
+    };
+  }
 
   Future<Map<String, Object?>> _recurringTransactions(
     AgentToolCall call,
   ) async {
-    final rows = await gateway.getRecurringTransactions(_ledgerId);
+    final rows = await gateway
+        .getRecurringTransactions(await _ledgerIdsFor(call));
     return {
       'items': rows
           .take(_maximumRecurringTransactions)
@@ -770,6 +878,26 @@ final class LocalAgentTools {
   }
 
   int get _ledgerId => scope.ledgerId!;
+
+  /// 本次查询覆盖哪些账本。不传就是当前账本，与改动前的行为完全一致；模型要跨账本
+  /// 时，从上下文里的账本清单取 id 传进来。
+  ///
+  /// 必须拿真实清单过一遍再放行：模型给的 id 不校验就进 SQL，等于允许它探测本机存在
+  /// 哪些不存在的账本、或构造超长 IN 列表放大查询。清单里没有的一律丢弃；全被丢弃时
+  /// 退回当前账本，保证每次调用都有确定且安全的范围。数量同时掐上限。
+  Future<List<int>> _ledgerIdsFor(AgentToolCall call) async {
+    final raw = call.arguments['ledgerIds'];
+    if (raw is! List) return [_ledgerId];
+    final requested =
+        raw.whereType<num>().map((value) => value.toInt()).toSet();
+    if (requested.isEmpty) return [_ledgerId];
+    final known = (await gateway.getLedgerCatalog()).map((l) => l.id).toSet();
+    final allowed = requested
+        .intersection(known)
+        .take(_maximumLedgers)
+        .toList();
+    return allowed.isEmpty ? [_ledgerId] : allowed;
+  }
 
   (DateTime, DateTime) _rangeFor(
     AgentToolCall call, {

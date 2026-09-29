@@ -8,9 +8,22 @@ import 'package:agentcore/agentcore.dart' as core;
 final class LocalAgentToolCatalog {
   const LocalAgentToolCatalog._();
 
+  /// 只读查询工具共用的账本范围参数。描述里强调「取自上下文清单」，因为模型只能
+  /// 从注入的账本清单里拿真实 id；传了不存在的 id 会在 gateway 侧被剔除。
+  static const _ledgerIdsProperty = <String, Object?>{
+    'ledgerIds': <String, Object?>{
+      'type': 'array',
+      'description':
+          '要查询的账本 ID 列表，取值必须来自上下文账本清单里的 id。不传时只查当前账本；需要跨账本比较或汇总时，把相关 id 一起传进来。',
+      'items': {'type': 'integer', 'minimum': 1},
+      'uniqueItems': true,
+      'maxItems': 20,
+    },
+  };
+
   static const _rangeParameters = <String, Object?>{
     'type': 'object',
-    'properties': {
+    'properties': <String, Object?>{
       'start': {
         'type': 'string',
         'description': '查询开始时间，ISO 8601 格式（包含）。',
@@ -19,6 +32,7 @@ final class LocalAgentToolCatalog {
         'type': 'string',
         'description': '查询结束时间，ISO 8601 格式（不包含）。',
       },
+      ..._ledgerIdsProperty,
     },
     'additionalProperties': false,
   };
@@ -110,13 +124,17 @@ final class LocalAgentToolCatalog {
         'minimum': 1,
         'maximum': 50,
       },
+      ..._ledgerIdsProperty,
     },
     'additionalProperties': false,
   };
 
-  static const _emptyParameters = <String, Object?>{
+  /// 预算与周期记账只需要账本范围，不需要时间区间。
+  static const _ledgerScopeParameters = <String, Object?>{
     'type': 'object',
-    'properties': <String, Object?>{},
+    'properties': <String, Object?>{
+      ..._ledgerIdsProperty,
+    },
     'additionalProperties': false,
   };
 
@@ -124,26 +142,26 @@ final class LocalAgentToolCatalog {
     core.AgentNativeToolDefinition(
       name: 'query_transactions',
       description:
-          '查询当前账本在时间范围内的交易明细，只读，不会修改数据。start 包含、end 不包含；缺少时间范围时使用最近 30 天。最多返回 20 条，适合用户明确要求查看明细或最近几笔交易，不适合计算总额或趋势。每条结果含交易原币金额、账本本位币金额、分类、转出/转入账户、标签、时间、备注及统计/预算排除状态。',
+          '查询账本在时间范围内的交易明细，只读，不会修改数据。不传 ledgerIds 时只查当前账本，可用 ledgerIds 同时查其他账本（取值来自上下文账本清单）。start 包含、end 不包含；缺少时间范围时使用最近 30 天。最多返回 20 条，适合用户明确要求查看明细或最近几笔交易，不适合计算总额或趋势。每条结果含交易原币金额、账本本位币金额、分类、转出/转入账户、标签、时间、备注及统计/预算排除状态。',
       parameters: _rangeParameters,
     ),
     core.AgentNativeToolDefinition(
       name: 'get_transaction_summary',
       description:
-          '在数据库内直接聚合当前账本的交易，不受明细查询条数限制。只读，不会修改数据。start 包含、end 不包含；缺少时间范围时使用最近 30 天。types 不传表示收入、支出和转账全部统计；groupBy 不传表示只返回总额，也可按分类、标签、账户或日/周/月/年分组。可用 ID 或名称筛选分类、标签和账户；金额均为账本本位币。返回 currency、periodStart、periodEnd、types、totals、groups、truncated；按标签分组时交易可能出现在多个标签组，按账户分组时转账会分别提供 transferOut 和 transferIn。聚合问题优先使用本工具，不要用明细列表自行汇总。',
+          '在数据库内直接聚合账本交易，不受明细查询条数限制。只读，不会修改数据。不传 ledgerIds 时只统计当前账本，可用 ledgerIds 同时统计多本（取值来自上下文账本清单）；跨本时金额已折算到应用主币种，可直接相加，此时 currency 返回的就是主币种。start 包含、end 不包含；缺少时间范围时使用最近 30 天。types 不传表示收入、支出和转账全部统计；groupBy 不传表示只返回总额，也可按分类、标签、账户或日/周/月/年分组。可用 ID 或名称筛选分类、标签和账户。返回 currency、periodStart、periodEnd、types、totals、groups、truncated；按标签分组时交易可能出现在多个标签组，按账户分组时转账会分别提供 transferOut 和 transferIn。聚合问题优先使用本工具，不要用明细列表自行汇总。',
       parameters: _transactionSummaryParameters,
     ),
     core.AgentNativeToolDefinition(
       name: 'get_budget_status',
       description:
-          '读取当前账本的预算快照，只读，不会修改数据，不需要参数。结果含 currency、daysRemaining、dailyAvailable、total 预算使用情况及 categoryBudgets 分类预算使用情况；每项包含已用、预算、剩余、使用率和状态。',
-      parameters: _emptyParameters,
+          '读取账本的预算快照，只读，不会修改数据。不传 ledgerIds 时读当前账本，可用 ledgerIds 一次读多本（取值来自上下文账本清单）。结果是 items 列表，每项含 ledgerName、currency、daysRemaining、dailyAvailable、total 预算使用情况及 categoryBudgets 分类预算使用情况；每项包含已用、预算、剩余、使用率和状态。预算按账本独立设置，不要跨本相加。',
+      parameters: _ledgerScopeParameters,
     ),
     core.AgentNativeToolDefinition(
       name: 'get_recurring_transactions',
       description:
-          '读取当前账本启用中的周期记账，只读，不会修改数据，不需要参数。结果是 items 列表，包含金额、币种、收入/支出类型、分类、账户、重复频率和间隔、起止日期、最近生成日期及备注。',
-      parameters: _emptyParameters,
+          '读取启用中的周期记账，只读，不会修改数据。不传 ledgerIds 时读当前账本，可用 ledgerIds 一次读多本（取值来自上下文账本清单）。结果是 items 列表，包含 ledgerName、金额、币种、收入/支出类型、分类、账户、重复频率和间隔、起止日期、最近生成日期及备注。',
+      parameters: _ledgerScopeParameters,
     ),
     core.AgentNativeToolDefinition(
       name: 'record_transaction_from_text',

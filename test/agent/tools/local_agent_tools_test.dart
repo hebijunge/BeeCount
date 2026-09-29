@@ -123,9 +123,9 @@ void main() {
       'groupsMayOverlap': false,
       'truncated': false,
     });
+    expect(gateway.summaryLedgerScopes, [[1]]);
     expect(gateway.summaryRequests, [
       (
-        ledgerId: 1,
         start: DateTime(2026, 8, 1),
         end: DateTime(2026, 8, 31, 23, 59, 59, 999),
         types: const {'income', 'expense', 'transfer'},
@@ -217,11 +217,15 @@ void main() {
     );
 
     expect(result, {
-      'currency': 'CNY',
-      'daysRemaining': 10,
-      'dailyAvailable': 20.0,
-      'total': null,
-      'categoryBudgets': [],
+      'items': [
+        {
+          'currency': 'CNY',
+          'daysRemaining': 10,
+          'dailyAvailable': 20.0,
+          'total': null,
+          'categoryBudgets': [],
+        },
+      ],
     });
   });
 
@@ -282,6 +286,103 @@ void main() {
     ]);
     expect(gateway.requestedLedgerIds, [1]);
   });
+
+  group('跨账本查询范围', () {
+    test('不传 ledgerIds 时只查当前账本', () async {
+      await tools['query_transactions']!
+          .execute(AgentToolCall(name: 'query_transactions'));
+      expect(gateway.requestedLedgerIds, [1]);
+    });
+
+    test('传清单内的多个 id 时全部纳入', () async {
+      await tools['query_transactions']!.execute(
+        AgentToolCall(
+          name: 'query_transactions',
+          arguments: const {
+            'ledgerIds': [1, 2, 3],
+          },
+        ),
+      );
+      expect(gateway.requestedLedgerIds.toSet(), {1, 2, 3});
+    });
+
+    test('清单外的 id 被剔除，不存在的账本进不了查询', () async {
+      await tools['query_transactions']!.execute(
+        AgentToolCall(
+          name: 'query_transactions',
+          arguments: const {
+            'ledgerIds': [2, 999],
+          },
+        ),
+      );
+      expect(gateway.requestedLedgerIds, [2]);
+    });
+
+    test('全部 id 都不存在时退回当前账本', () async {
+      await tools['query_transactions']!.execute(
+        AgentToolCall(
+          name: 'query_transactions',
+          arguments: const {
+            'ledgerIds': [998, 999],
+          },
+        ),
+      );
+      expect(gateway.requestedLedgerIds, [1]);
+    });
+
+    test('账本数量超上限时截断', () async {
+      // 交集先于截断，所以清单本身要超过上限才测得到截断。
+      gateway.ledgerCatalog = [
+        for (var i = 1; i <= 25; i++)
+          AgentLedgerSummary(id: i, name: '账本$i', currency: 'CNY'),
+      ];
+      await tools['query_transactions']!.execute(
+        AgentToolCall(
+          name: 'query_transactions',
+          arguments: {
+            'ledgerIds': [for (var i = 1; i <= 25; i++) i],
+          },
+        ),
+      );
+      expect(gateway.requestedLedgerIds, hasLength(20));
+    });
+
+    test('明细只保留生效账本范围内的行', () async {
+      gateway.transactions = [
+        for (final id in [1, 2, 3])
+          AgentTransactionSummary(
+            id: id,
+            ledgerId: id,
+            type: 'expense',
+            amount: -10,
+            happenedAt: DateTime(2026, 1, 1),
+            note: '支出',
+          ),
+      ];
+      final result = await tools['query_transactions']!.execute(
+        AgentToolCall(
+          name: 'query_transactions',
+          arguments: const {
+            'ledgerIds': [2, 3],
+          },
+        ),
+      );
+      final items = (result['items'] as List).cast<Map<String, Object?>>();
+      expect(items.map((item) => item['ledgerId']), [2, 3]);
+    });
+
+    test('统计工具同样带上多账本范围', () async {
+      await tools['get_transaction_summary']!.execute(
+        AgentToolCall(
+          name: 'get_transaction_summary',
+          arguments: const {
+            'ledgerIds': [1, 3],
+          },
+        ),
+      );
+      expect(gateway.summaryLedgerScopes.single, [1, 3]);
+    });
+  });
 }
 
 final class _FakeGateway implements LocalAgentToolGateway {
@@ -290,7 +391,6 @@ final class _FakeGateway implements LocalAgentToolGateway {
   final List<({int ledgerId, int memoryId})> forgetMemoryRequests = [];
   final List<
       ({
-        int ledgerId,
         DateTime start,
         DateTime end,
         Set<String> types,
@@ -305,8 +405,19 @@ final class _FakeGateway implements LocalAgentToolGateway {
         bool includeExcludedFromStats,
         int groupLimit,
       })> summaryRequests = [];
+  /// 账本范围单独记：record 的相等性对 List 字段走身份比较，塞进上面那张表就没法
+  /// 用整表相等来断言。
+  final List<List<int>> summaryLedgerScopes = [];
   List<AgentTransactionSummary> transactions = [];
   String ledgerCurrency = 'CNY';
+  String baseCurrency = 'CNY';
+
+  /// 默认清单含三本，其中 id 1 与 scope.ledgerId 一致：不传 ledgerIds 时应只查它。
+  List<AgentLedgerSummary> ledgerCatalog = const [
+    AgentLedgerSummary(id: 1, name: '默认账本', currency: 'CNY'),
+    AgentLedgerSummary(id: 2, name: '生意', currency: 'CNY'),
+    AgentLedgerSummary(id: 3, name: '旅行', currency: 'USD'),
+  ];
   final List<AgentRecurringTransactionSummary> recurringTransactions = const [
     AgentRecurringTransactionSummary(
       type: 'expense',
@@ -327,33 +438,45 @@ final class _FakeGateway implements LocalAgentToolGateway {
   }
 
   @override
-  Future<AgentBudgetSummary> getBudgetStatus(int ledgerId) async =>
-      const AgentBudgetSummary(daysRemaining: 10, dailyAvailable: 20);
+  Future<List<AgentBudgetSummary>> getBudgetStatus(
+    List<int> ledgerIds,
+  ) async {
+    requestedLedgerIds.addAll(ledgerIds);
+    return const [
+      AgentBudgetSummary(daysRemaining: 10, dailyAvailable: 20),
+    ];
+  }
 
   @override
   Future<String> getLedgerCurrency(int ledgerId) async => ledgerCurrency;
 
   @override
+  Future<String> getBaseCurrency() async => baseCurrency;
+
+  @override
+  Future<List<AgentLedgerSummary>> getLedgerCatalog() async => ledgerCatalog;
+
+  @override
   Future<List<AgentRecurringTransactionSummary>> getRecurringTransactions(
-    int ledgerId,
+    List<int> ledgerIds,
   ) async {
-    requestedLedgerIds.add(ledgerId);
+    requestedLedgerIds.addAll(ledgerIds);
     return recurringTransactions;
   }
 
   @override
   Future<List<AgentTransactionSummary>> queryTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
   }) async {
-    requestedLedgerIds.add(ledgerId);
+    requestedLedgerIds.addAll(ledgerIds);
     return transactions;
   }
 
   @override
   Future<Map<String, Object?>> summarizeTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
     required Set<String> types,
@@ -368,8 +491,8 @@ final class _FakeGateway implements LocalAgentToolGateway {
     required bool includeExcludedFromStats,
     required int groupLimit,
   }) async {
+    summaryLedgerScopes.add(ledgerIds);
     summaryRequests.add((
-      ledgerId: ledgerId,
       start: start,
       end: end,
       types: types,

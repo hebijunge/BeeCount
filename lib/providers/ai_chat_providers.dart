@@ -51,6 +51,7 @@ final localAgentToolGatewayProvider = Provider<LocalAgentToolGateway>((ref) {
     database: ref.watch(databaseProvider),
     bookkeeper: ref.watch(aiBookkeeperProvider),
     memoryRepository: ref.watch(agentMemoryRepositoryProvider),
+    baseCurrency: () => ref.read(baseCurrencyProvider),
   );
 });
 

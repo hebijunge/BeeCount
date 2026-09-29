@@ -278,6 +278,30 @@ void main() {
     expect(model.request!.context['currentTime'], isA<String>());
   });
 
+  // 提示词构建器一直在读 context['ledger']，但此前没有任何地方写入这个键，模型连
+  // 当前账本叫什么都不知道。这条锁的就是「确实注入了」。
+  test('账本清单进入请求上下文', () async {
+    final model = _CapturingModel();
+    final facade = AgentAppFacade(
+      memoryRepository: LocalAgentMemoryRepository(db),
+      toolGateway: gateway,
+      permissionStore: _MemoryPermissionStore(),
+      model: model,
+      runIdFactory: () => 'run-ledger',
+    );
+
+    await facade.processMessage(message: '我有哪些账本', ledgerId: 1);
+
+    final ledger = model.request!.context['ledger']! as Map;
+    expect(ledger['current'], {
+      'id': 1,
+      'name': '默认账本',
+      'currency': 'CNY',
+    });
+    expect(ledger['baseCurrency'], 'CNY');
+    expect(ledger['all'], hasLength(1));
+  });
+
   test('loads recent local memories when the user asks an equivalent question',
       () async {
     final memory = LocalAgentMemoryRepository(db);
@@ -1162,7 +1186,7 @@ final class _FakeGateway implements LocalAgentToolGateway {
 
   @override
   Future<List<AgentRecurringTransactionSummary>> getRecurringTransactions(
-    int ledgerId,
+    List<int> ledgerIds,
   ) async =>
       const [];
 
@@ -1174,15 +1198,27 @@ final class _FakeGateway implements LocalAgentToolGateway {
       false;
 
   @override
-  Future<AgentBudgetSummary> getBudgetStatus(int ledgerId) async =>
-      const AgentBudgetSummary(daysRemaining: 10, dailyAvailable: 20);
+  Future<List<AgentBudgetSummary>> getBudgetStatus(
+    List<int> ledgerIds,
+  ) async =>
+      const [
+        AgentBudgetSummary(daysRemaining: 10, dailyAvailable: 20),
+      ];
 
   @override
   Future<String> getLedgerCurrency(int ledgerId) async => 'CNY';
 
   @override
+  Future<String> getBaseCurrency() async => 'CNY';
+
+  @override
+  Future<List<AgentLedgerSummary>> getLedgerCatalog() async => const [
+        AgentLedgerSummary(id: 1, name: '默认账本', currency: 'CNY'),
+      ];
+
+  @override
   Future<List<AgentTransactionSummary>> queryTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
   }) async {
@@ -1192,7 +1228,7 @@ final class _FakeGateway implements LocalAgentToolGateway {
 
   @override
   Future<Map<String, Object?>> summarizeTransactions({
-    required int ledgerId,
+    required List<int> ledgerIds,
     required DateTime start,
     required DateTime end,
     required Set<String> types,

@@ -26,6 +26,7 @@ void main() {
     db = BeeDatabase.forTesting(NativeDatabase.memory());
     repository = LocalRepository(db);
     gateway = BeeCountLocalAgentToolGateway(
+      baseCurrency: () => 'CNY',
       repository: repository,
       database: db,
       bookkeeper: AiBookkeeper(
@@ -78,7 +79,7 @@ void main() {
     );
 
     final result = await gateway.queryTransactions(
-      ledgerId: ledgerId,
+      ledgerIds: [ledgerId],
       start: DateTime(2026, 9, 1),
       end: DateTime(2026, 10, 1),
     );
@@ -649,7 +650,7 @@ void main() {
       DateTime(2026, 9, 5),
     );
 
-    final result = await gateway.getRecurringTransactions(ledgerId);
+    final result = await gateway.getRecurringTransactions([ledgerId]);
 
     expect(result, hasLength(1));
     expect(result.single.toToolData(), {
@@ -705,8 +706,8 @@ void main() {
       nativeAmount: 25,
     );
 
-    final result = await gateway.getBudgetStatus(ledgerId);
-    final data = result.toToolData();
+    final result = await gateway.getBudgetStatus([ledgerId]);
+    final data = result.single.toToolData();
 
     expect(data['currency'], 'USD');
     expect(data['total'], {
@@ -746,6 +747,7 @@ void main() {
       currency: 'CNY',
     );
     final recordingGateway = BeeCountLocalAgentToolGateway(
+      baseCurrency: () => 'CNY',
       repository: repository,
       database: db,
       bookkeeper: AiBookkeeper(
@@ -816,8 +818,10 @@ Future<Map<String, Object?>> _summarizeGateway(
   bool includeExcludedFromStats = false,
   int groupLimit = 20,
 }) async {
-  final dynamic result = await (gateway as dynamic).summarizeTransactions(
-    ledgerId: ledgerId,
+  // 这里原先写成 (gateway as dynamic)，绕过了编译期检查：接口签名一变就只能在运行时
+  // 才炸。gateway 本来就是强类型，直接调即可。
+  final result = await gateway.summarizeTransactions(
+    ledgerIds: [ledgerId],
     start: start,
     end: end,
     types: types,
@@ -832,7 +836,7 @@ Future<Map<String, Object?>> _summarizeGateway(
     includeExcludedFromStats: includeExcludedFromStats,
     groupLimit: groupLimit,
   );
-  return Map<String, Object?>.from(result as Map);
+  return Map<String, Object?>.from(result);
 }
 
 Matcher _summaryGroup({

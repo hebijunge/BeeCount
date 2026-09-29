@@ -31,8 +31,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.tntlikely.beecount"
+        // 自建包用独立 applicationId，与上游 com.tntlikely.beecount 的正式包互不覆盖。
+        // 只改这一行：namespace 保持原值，所以 Kotlin 源码目录、类名、MethodChannel 名都不用动；
+        // FileProvider 的 authority 写的是 ${applicationId}，会自动跟随。
+        applicationId = "com.ajun.beecount"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 23  // Required by record_android for voice recording

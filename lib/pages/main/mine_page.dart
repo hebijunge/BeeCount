@@ -552,7 +552,7 @@ class MinePage extends ConsumerWidget {
 
 /// 「我的」页的全部账本汇总区，整块可折叠。
 ///
-/// 各账本逐本明细。顶部三格已是全部账本汇总，这里点开才列出每一本的天数/笔数/结余，
+/// 各账本逐本明细。顶部两格已是全部账本汇总，这里点开才列出每一本的笔数/结余，
 /// 每行左侧标账本名。结余走 [perLedgerStatsProvider]，各账本已折算到主币种，币种取
 /// baseCurrency 而不是各本自身币种。
 class _AllLedgersSummarySection extends ConsumerWidget {
@@ -615,7 +615,6 @@ class _AllLedgersSummarySection extends ConsumerWidget {
               padding: EdgeInsets.only(bottom: 6.0.scaled(context, ref)),
               child: _PerLedgerRow(
                 name: ledger.name,
-                dayCount: ledger.dayCount,
                 txCount: ledger.txCount,
                 balance: ledger.balance,
                 currencyCode: baseCurrency,
@@ -638,11 +637,10 @@ class _AllLedgersSummarySection extends ConsumerWidget {
   }
 }
 
-/// 单本一行：左侧账本名，右侧天数/笔数/结余三格，与顶部汇总那三格同构。
+/// 单本一行：左侧账本名，右侧笔数/结余两格，与顶部汇总那两格同构。
 class _PerLedgerRow extends StatelessWidget {
   const _PerLedgerRow({
     required this.name,
-    required this.dayCount,
     required this.txCount,
     required this.balance,
     required this.currencyCode,
@@ -651,7 +649,6 @@ class _PerLedgerRow extends StatelessWidget {
   });
 
   final String name;
-  final int dayCount;
   final int txCount;
   final double balance;
   final String currencyCode;
@@ -681,8 +678,8 @@ class _PerLedgerRow extends StatelessWidget {
             children: [
               Expanded(
                 child: _StatCell(
-                  label: l10n.mineDaysCount,
-                  value: dayCount.toString(),
+                  label: l10n.mineTotalRecords,
+                  value: txCount.toString(),
                   labelStyle: labelStyle,
                   numStyle: numStyle.copyWith(fontSize: 15),
                   centered: false,
@@ -1184,7 +1181,7 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
     final effectiveAvatarPath = avatarAsync.asData?.value ?? _avatarPath;
 
     // 获取当前账本信息
-    // 顶部三格展示「全部账本汇总」口径（天数/笔数走跨账本聚合，结余折算到主币种），
+    // 顶部两格展示「全部账本汇总」口径（总笔数走跨账本聚合，结余折算到主币种），
     // 而不再是当前账本；展开态在下方各账本明细里看逐本数字。币种取 baseCurrency。
     final countsAll = ref.watch(countsAllProvider);
     final balanceAsync = ref.watch(allLedgersBalanceProvider);
@@ -1202,7 +1199,6 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
         ? l10n.mineGreetingNamed(greeting.text, displayName)
         : l10n.mineSlogan;
 
-    final day = countsAll.asData?.value.dayCount ?? 0;
     final tx = countsAll.asData?.value.txCount ?? 0;
     final balance = balanceAsync.asData?.value ?? 0.0;
 
@@ -1348,18 +1344,9 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
                 ],
               ),
               SizedBox(height: 16.0.scaled(context, ref)),
-              // 统计数据
+              // 统计信息：只留总笔数与账本结余，记账天数不再展示。
               Row(
                 children: [
-                  Expanded(
-                    child: _StatCell(
-                      label: AppLocalizations.of(context).mineDaysCount,
-                      value: day.toString(),
-                      labelStyle: labelStyle,
-                      numStyle: numStyle,
-                      centered: true,
-                    ),
-                  ),
                   Expanded(
                     child: _StatCell(
                       label: AppLocalizations.of(context).mineTotalRecords,

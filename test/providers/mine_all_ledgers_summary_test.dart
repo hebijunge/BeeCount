@@ -128,7 +128,7 @@ void main() {
     expect(asUsd, asCny, reason: '汇总不做二次折算，币种切换不该改变它');
   });
 
-  test('perLedgerStatsProvider 逐本返回天数/笔数/结余并带账本名', () async {
+  test('perLedgerStatsProvider 逐本返回笔数/结余并带账本名', () async {
     final a = await repo.createLedger(name: '日常');
     final b = await repo.createLedger(name: '旅行');
     await addTx(a, type: 'income', amount: 100);

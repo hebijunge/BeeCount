@@ -42,7 +42,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
 
   /// 导出列的排布顺序（全列，含未勾选的），支持拖动排序；导出/预览按此顺序出列。
   /// 默认「时间」在「金额」前，其余保持相对顺序，可被用户拖到任意位置。
-  List<ExportColumn> _columnOrder = List.of(ExportColumn.defaultOrder);
+  final List<ExportColumn> _columnOrder = List.of(ExportColumn.defaultOrder);
 
   /// 用户勾过的账本集合；没勾过则回落到当前账本，保持旧版「只导当前账本」的行为。
   Set<int> _effectiveSelection(List<Ledger> ledgers, int currentLedgerId) {
@@ -137,44 +137,16 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 Text(l10n.exportColumnsLabel,
                     style: Theme.of(context).textTheme.labelLarge),
                 const SizedBox(height: 4),
-                // 列排布可拖动排序：用 ReorderableListView（整页在 ListView 里，故 shrinkWrap
-                // + NeverScrollable 嵌进去），长按左侧把手拖动即可重排，松手按新顺序出列；
-                // 点按列方块本身仍是勾选/取消。
-                ReorderableListView(
-                  key: const PageStorageKey('export-column-reorder'),
-                  onReorder: (from, to) {
-                    setState(() {
-                      final moved = _columnOrder.removeAt(from);
-                      _columnOrder.insert(to, moved);
-                    });
-                  },
-                  buildDefaultDragHandles: true,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
+                // 列方块紧凑排布、自动换行；长按某个方块拖到另一个上即可换位（点按方块
+                // 本身仍是勾选/取消）。用 Wrap + LongPressDraggable 而不是
+                // ReorderableListView，是因为后者只能一行一项。
+                Wrap(
+                  key: const ValueKey('export-columns-wrap'),
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    for (final column in _columnOrder)
-                      Padding(
-                        key: ValueKey(column),
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: FilterChip(
-                          label: Text(column.headerText(l10n)),
-                          selected:
-                              _columns.contains(column) || column.isRequired,
-                          onSelected:
-                              exporting || column.isRequired
-                                  ? null
-                                  : (on) => setState(() {
-                                        final next = {..._columns};
-                                        if (on) {
-                                          next.add(column);
-                                        } else {
-                                          next.remove(column);
-                                        }
-                                        _columns = next;
-                                      }),
-                        ),
-                      ),
+                    for (var i = 0; i < _columnOrder.length; i++)
+                      _columnChip(l10n, i),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -228,6 +200,70 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         ],
       ),
     );
+  }
+
+  /// 单个列方块：DragTarget 接住被拖来的下标，LongPressDraggable 让方块本身可被拖走。
+  /// 点按走 FilterChip 的 onSelected 勾选/取消，长按满 [duration] 才进入拖动，两者不打架。
+  Widget _columnChip(AppLocalizations l10n, int index) {
+    final column = _columnOrder[index];
+    final chip = FilterChip(
+      key: ValueKey('export-column-${column.name}'),
+      label: Text(column.headerText(l10n)),
+      selected: _columns.contains(column) || column.isRequired,
+      onSelected: exporting || column.isRequired
+          ? null
+          : (on) => setState(() {
+                final next = {..._columns};
+                if (on) {
+                  next.add(column);
+                } else {
+                  next.remove(column);
+                }
+                _columns = next;
+              }),
+    );
+
+    return DragTarget<int>(
+      onAcceptWithDetails: (details) => _moveColumn(details.data, index),
+      builder: (context, candidates, _) {
+        final beingReplaced = candidates.isNotEmpty && !candidates.contains(index);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: beingReplaced
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: LongPressDraggable<int>(
+            data: index,
+            delay: const Duration(milliseconds: 200),
+            feedback: Material(
+              color: Colors.transparent,
+              elevation: 4,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              child: chip,
+            ),
+            childWhenDragging: Opacity(opacity: 0.3, child: chip),
+            child: chip,
+          ),
+        );
+      },
+    );
+  }
+
+  /// 把 from 处的列挪到 to 那个方块原来的下标上，中间依次让位；拖到自己身上不动。
+  void _moveColumn(int from, int to) {
+    if (from == to) return;
+    setState(() {
+      final moved = _columnOrder.removeAt(from);
+      _columnOrder.insert(to, moved);
+    });
   }
 
   /// 先弹预览，用户确认后才真正落盘。

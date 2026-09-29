@@ -47,6 +47,38 @@ void main() {
     test('全选等于完整列序', () {
       expect(ExportColumn.values.toSet().resolved, ExportColumn.values);
     });
+
+    test('默认列顺序把「时间」放在「金额」前面', () {
+      final order = ExportColumn.defaultOrder;
+      expect(order, containsAll(ExportColumn.values),
+          reason: 'defaultOrder 必须覆盖全部列');
+      expect(order.indexOf(ExportColumn.time),
+          lessThan(order.indexOf(ExportColumn.amount)));
+      // 勾选「时间/备注/金额」时，出列顺序即 defaultOrder 里三者的相对顺序。
+      expect(
+        ExportColumn.defaultSelected.resolvedIn(order),
+        [ExportColumn.time, ExportColumn.amount, ExportColumn.note],
+      );
+    });
+
+    test('拖动排序按自定义顺序出列，金额仍被强制保留', () {
+      // 把「金额」拖到最前，「时间」拖到其后：出列顺序应跟随自定义排布。
+      const custom = [
+        ExportColumn.amount,
+        ExportColumn.time,
+        ExportColumn.note,
+        ExportColumn.type,
+      ];
+      expect(
+        {ExportColumn.time, ExportColumn.note}.resolvedIn(custom),
+        [ExportColumn.amount, ExportColumn.time, ExportColumn.note],
+        reason: '金额必选，即便自定义顺序靠后也要补上并排在勾选列里',
+      );
+      // 自定义顺序漏掉的必选列（这里是故意把 amount 排在后面）仍会补齐。
+      final picked =
+          {ExportColumn.type}.resolvedIn([ExportColumn.type]);
+      expect(picked, [ExportColumn.type, ExportColumn.amount]);
+    });
   });
 
   // 精简列导出会直接影响回导：只勾三列时文件里没有「类型」，导入侧要能认得出账本

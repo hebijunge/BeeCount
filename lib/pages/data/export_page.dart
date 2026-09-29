@@ -40,6 +40,10 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   /// 导出列勾选，默认「时间 / 备注 / 金额」。金额必选在服务层兜底，UI 里也不给取消。
   Set<ExportColumn> _columns = ExportColumn.defaultSelected;
 
+  /// 导出列的排布顺序（全列，含未勾选的），支持拖动排序；导出/预览按此顺序出列。
+  /// 默认「时间」在「金额」前，其余保持相对顺序，可被用户拖到任意位置。
+  List<ExportColumn> _columnOrder = List.of(ExportColumn.defaultOrder);
+
   /// 用户勾过的账本集合；没勾过则回落到当前账本，保持旧版「只导当前账本」的行为。
   Set<int> _effectiveSelection(List<Ledger> ledgers, int currentLedgerId) {
     if (_selectedLedgerIds != null) return _selectedLedgerIds!;
@@ -133,31 +137,56 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 Text(l10n.exportColumnsLabel,
                     style: Theme.of(context).textTheme.labelLarge),
                 const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
+                // 列排布可拖动排序：用 ReorderableListView（整页在 ListView 里，故 shrinkWrap
+                // + NeverScrollable 嵌进去），长按左侧把手拖动即可重排，松手按新顺序出列；
+                // 点按列方块本身仍是勾选/取消。
+                ReorderableListView(
+                  key: const PageStorageKey('export-column-reorder'),
+                  onReorder: (from, to) {
+                    setState(() {
+                      final moved = _columnOrder.removeAt(from);
+                      _columnOrder.insert(to, moved);
+                    });
+                  },
+                  buildDefaultDragHandles: true,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
                   children: [
-                    for (final column in ExportColumn.values)
-                      FilterChip(
-                        label: Text(column.headerText(l10n)),
-                        selected: _columns.contains(column) || column.isRequired,
-                        onSelected: exporting || column.isRequired
-                            ? null
-                            : (on) => setState(() {
-                                  final next = {..._columns};
-                                  if (on) {
-                                    next.add(column);
-                                  } else {
-                                    next.remove(column);
-                                  }
-                                  _columns = next;
-                                }),
+                    for (final column in _columnOrder)
+                      Padding(
+                        key: ValueKey(column),
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: FilterChip(
+                          label: Text(column.headerText(l10n)),
+                          selected:
+                              _columns.contains(column) || column.isRequired,
+                          onSelected:
+                              exporting || column.isRequired
+                                  ? null
+                                  : (on) => setState(() {
+                                        final next = {..._columns};
+                                        if (on) {
+                                          next.add(column);
+                                        } else {
+                                          next.remove(column);
+                                        }
+                                        _columns = next;
+                                      }),
+                        ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(l10n.exportColumnsHint,
                     style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 4),
+                Text(l10n.exportColumnsReorderHint,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(
+                            color: Theme.of(context).colorScheme.outline)),
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   onPressed: exporting || ordered.isEmpty
@@ -213,6 +242,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           ledgerIds: ledgerIds,
           asExcel: _format == ExportFormat.excel,
           columns: {..._columns},
+          columnOrder: List.of(_columnOrder),
         ),
       ),
     );
@@ -249,6 +279,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           includeLedgerColumn: multiLedger && !asExcel,
           padTimeCell: !asExcel,
           columns: _columns,
+          columnOrder: _columnOrder,
           onProgress: (ratio) {
             if (!mounted) return;
             setState(() => progress = (i + ratio) / ledgerIds.length);

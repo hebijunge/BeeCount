@@ -32,6 +32,23 @@ enum ExportColumn {
   /// 默认只勾「时间 / 备注 / 金额」三列。
   static const Set<ExportColumn> defaultSelected = {time, note, amount};
 
+  /// 默认列顺序：把「时间」挪到「金额」前面，其余保持枚举相对顺序。
+  /// 拖动排序 / 落盘顺序都以这份列表为基线（[defaultOrder] 可被用户重排覆盖）。
+  static const List<ExportColumn> defaultOrder = [
+    type,
+    category,
+    subCategory,
+    time,
+    amount,
+    currency,
+    account,
+    fromAccount,
+    toAccount,
+    note,
+    tags,
+    attachments,
+  ];
+
   /// 金额是账单的本体，缺了这份文件既没法看也没法回导，所以不给取消。
   bool get isRequired => this == ExportColumn.amount;
 
@@ -60,6 +77,24 @@ extension ExportColumnSelection on Set<ExportColumn> {
         for (final column in ExportColumn.values)
           if (contains(column) || column.isRequired) column,
       ];
+
+  /// 按调用方给的 [order] 出列：取「勾选列 ∪ 必选列」与 [order] 的交集并保留
+  /// [order] 的先后 —— 让用户拖动排序后的顺序直接决定文件列序。
+  ///
+  /// [order] 漏掉的必选列（正常不会发生，因为 [order] 是全列排布）兜底追加到末尾，
+  /// 保证任何重排都造不出缺金额的文件。
+  List<ExportColumn> resolvedIn(List<ExportColumn> order) {
+    final picked = <ExportColumn>[
+      for (final column in order)
+        if (contains(column) || column.isRequired) column,
+    ];
+    for (final column in ExportColumn.values) {
+      if ((contains(column) || column.isRequired) && !picked.contains(column)) {
+        picked.add(column);
+      }
+    }
+    return picked;
+  }
 }
 
 /// 单个账本的导出内容：[rows] 第 0 行是表头，其余是数据行。
@@ -94,12 +129,15 @@ class TransactionExportService {
 
   /// [includeLedgerColumn] 给多账本合并进单张表（CSV 没有 sheet）时加一列账本名。
   /// [padTimeCell] 保留 CSV 时代给 Excel 撑列宽加的前后空格；xlsx 有真列宽，不需要。
-  /// [columns] 勾选要输出的列，输出顺序按 [ExportColumn] 声明顺序，必选列会被强制补齐。
+  /// [columns] 勾选要输出的列，必选列会被强制补齐。
+  /// [columnOrder] 输出列的先后顺序（全列排布，通常来自 UI 的拖动排序）；不传则
+  /// 回落 [ExportColumn] 枚举声明顺序。
   Future<LedgerExportSheet> buildSheet(
     int ledgerId, {
     bool includeLedgerColumn = false,
     bool padTimeCell = true,
     Set<ExportColumn> columns = ExportColumn.defaultSelected,
+    List<ExportColumn>? columnOrder,
     void Function(double progress)? onProgress,
   }) async {
     final transactionsWithCategory =
@@ -112,7 +150,9 @@ class TransactionExportService {
         ((ledger?.currency.isNotEmpty ?? false) ? ledger!.currency : 'CNY')
             .toUpperCase();
 
-    final pickedColumns = columns.resolved;
+    final pickedColumns = columnOrder != null
+        ? columns.resolvedIn(columnOrder)
+        : columns.resolved;
     final header = <String>[
       if (includeLedgerColumn) _l10n.exportCsvHeaderLedger,
       for (final column in pickedColumns) column.headerText(_l10n),

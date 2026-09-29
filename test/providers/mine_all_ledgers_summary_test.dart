@@ -127,4 +127,22 @@ void main() {
     expect(asCny, 120.0);
     expect(asUsd, asCny, reason: '汇总不做二次折算，币种切换不该改变它');
   });
+
+  test('perLedgerStatsProvider 逐本返回天数/笔数/结余并带账本名', () async {
+    final a = await repo.createLedger(name: '日常');
+    final b = await repo.createLedger(name: '旅行');
+    await addTx(a, type: 'income', amount: 100);
+    await addTx(a, type: 'expense', amount: 30);
+    await addTx(b, type: 'expense', amount: 20);
+
+    final container = makeContainer();
+    final per = await container.read(perLedgerStatsProvider.future);
+
+    expect(per, hasLength(2));
+    final byName = {for (final e in per) e.name: e};
+    expect(byName['日常']!.txCount, 2);
+    expect(byName['日常']!.balance, 70.0);
+    expect(byName['旅行']!.txCount, 1);
+    expect(byName['旅行']!.balance, -20.0);
+  });
 }

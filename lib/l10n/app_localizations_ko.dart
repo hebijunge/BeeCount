@@ -1494,6 +1494,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mineAllLedgersSummary => '모든 가계부 합계';
 
   @override
+  String get minePerLedgerDetail => '각 가계부 내역';
+
+  @override
+  String get mineNoLedgerDetail => '가계부가 없습니다';
+
+  @override
   String get mineCloudService => '클라우드 서비스';
 
   @override
@@ -2813,6 +2819,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exportColumnsHint => '금액 열은 항상 포함됩니다. 유형 열을 선택하지 않으면 재가져오기 시 지출로 처리되며, 분류·계정 열을 빼면 해당 정보가 파일에 기록되지 않습니다.';
+
+  @override
+  String get exportColumnsReorderHint => '길게 누른 뒤 드래그하면 열 순서를 바꿀 수 있으며, 내보낼 때 이 순서대로 됩니다.';
 
   @override
   String get exportPreviewTitle => '내보내기 미리보기';

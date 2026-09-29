@@ -2864,6 +2864,18 @@ abstract class AppLocalizations {
   /// **'All ledgers'**
   String get mineAllLedgersSummary;
 
+  /// No description provided for @minePerLedgerDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Per-ledger detail'**
+  String get minePerLedgerDetail;
+
+  /// No description provided for @mineNoLedgerDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'No ledgers yet'**
+  String get mineNoLedgerDetail;
+
   /// No description provided for @mineCloudService.
   ///
   /// In en, this message translates to:
@@ -5365,6 +5377,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Amount is always included. Without the type column, re-imports treat rows as expenses; leaving out category or account columns drops that data from the file.'**
   String get exportColumnsHint;
+
+  /// No description provided for @exportColumnsReorderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press and drag to reorder columns; the export follows this order.'**
+  String get exportColumnsReorderHint;
 
   /// No description provided for @exportPreviewTitle.
   ///

@@ -21,12 +21,14 @@ class ExportPreviewPage extends StatefulWidget {
     required this.ledgerIds,
     required this.asExcel,
     required this.columns,
+    this.columnOrder,
   });
 
   final BaseRepository repository;
   final List<int> ledgerIds;
   final bool asExcel;
   final Set<ExportColumn> columns;
+  final List<ExportColumn>? columnOrder;
 
   @override
   State<ExportPreviewPage> createState() => _ExportPreviewPageState();
@@ -59,6 +61,7 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
           includeLedgerColumn: multiLedger && !widget.asExcel,
           padTimeCell: !widget.asExcel,
           columns: widget.columns,
+          columnOrder: widget.columnOrder,
         ));
       }
       if (!mounted) return;

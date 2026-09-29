@@ -1494,6 +1494,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineAllLedgersSummary => '全部账本汇总';
 
   @override
+  String get minePerLedgerDetail => '各账本明细';
+
+  @override
+  String get mineNoLedgerDetail => '暂无账本';
+
+  @override
   String get mineCloudService => '云服务';
 
   @override
@@ -2813,6 +2819,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportColumnsHint => '金额列始终包含。不勾「类型」时，回导会按支出处理；不勾分类、账户等列，这些信息就不会写进文件。';
+
+  @override
+  String get exportColumnsReorderHint => '长按并拖动可调整列顺序，导出时按此顺序排列。';
 
   @override
   String get exportPreviewTitle => '导出预览';
@@ -9445,6 +9454,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineAllLedgersSummary => '全部帳本匯總';
 
   @override
+  String get minePerLedgerDetail => '各帳本明細';
+
+  @override
+  String get mineNoLedgerDetail => '暫無帳本';
+
+  @override
   String get mineCloudService => '雲服務';
 
   @override
@@ -10764,6 +10779,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportColumnsHint => '金額欄位一律包含。未勾「類型」時，回匯會按支出處理；未勾分類、帳戶等欄位，這些資訊不會寫進檔案。';
+
+  @override
+  String get exportColumnsReorderHint => '長按並拖動可調整欄位順序，匯出時依此順序排列。';
 
   @override
   String get exportPreviewTitle => '匯出預覽';

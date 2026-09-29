@@ -49,7 +49,7 @@ import '../donation/donation_page.dart';
 
 /// 「全部账本汇总」是否展开。跟 hideAmountsProvider 一样只放内存，重启回到默认展开，
 /// 不额外落盘 —— 这只是一个视图偏好，收起状态没必要跨启动保留。
-final allLedgersSummaryExpandedProvider = StateProvider<bool>((ref) => true);
+final allLedgersSummaryExpandedProvider = StateProvider<bool>((ref) => false);
 
 class MinePage extends ConsumerWidget {
   const MinePage({super.key});
@@ -552,9 +552,9 @@ class MinePage extends ConsumerWidget {
 
 /// 「我的」页的全部账本汇总区，整块可折叠。
 ///
-/// 三个数字都是跨账本口径，跟上方当前账本那三格只是范围不同，所以标签复用同一套
-/// 文案、由区块标题来区分。结余那格走 [allLedgersBalanceProvider]，它已把各账本折算
-/// 到基准币种，所以币种取 baseCurrency 而不是当前账本的币种，否则会标错。
+/// 各账本逐本明细。顶部三格已是全部账本汇总，这里点开才列出每一本的天数/笔数/结余，
+/// 每行左侧标账本名。结余走 [perLedgerStatsProvider]，各账本已折算到主币种，币种取
+/// baseCurrency 而不是各本自身币种。
 class _AllLedgersSummarySection extends ConsumerWidget {
   const _AllLedgersSummarySection();
 
@@ -562,13 +562,8 @@ class _AllLedgersSummarySection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final expanded = ref.watch(allLedgersSummaryExpandedProvider);
-    final counts = ref.watch(countsAllProvider);
-    final balanceAsync = ref.watch(allLedgersBalanceProvider);
+    final perLedgerAsync = ref.watch(perLedgerStatsProvider);
     final baseCurrency = ref.watch(baseCurrencyProvider).toUpperCase();
-
-    final day = counts.asData?.value.dayCount ?? 0;
-    final tx = counts.asData?.value.txCount ?? 0;
-    final balance = balanceAsync.asData?.value ?? 0.0;
 
     final labelStyle = Theme.of(context)
         .textTheme
@@ -576,6 +571,8 @@ class _AllLedgersSummarySection extends ConsumerWidget {
         ?.copyWith(color: BeeTokens.textSecondary(context));
     final numStyle = BeeTextTokens.strongTitle(context)
         .copyWith(fontSize: 20, color: BeeTokens.textPrimary(context));
+
+    final perLedger = perLedgerAsync.asData?.value ?? const [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,7 +591,7 @@ class _AllLedgersSummarySection extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    l10n.mineAllLedgersSummary,
+                    l10n.minePerLedgerDetail,
                     style: Theme.of(context)
                         .textTheme
                         .labelLarge
@@ -613,24 +610,91 @@ class _AllLedgersSummarySection extends ConsumerWidget {
         ),
         if (expanded) ...[
           SizedBox(height: 10.0.scaled(context, ref)),
-          Row(
+          for (final ledger in perLedger) ...[
+            Padding(
+              padding: EdgeInsets.only(bottom: 6.0.scaled(context, ref)),
+              child: _PerLedgerRow(
+                name: ledger.name,
+                dayCount: ledger.dayCount,
+                txCount: ledger.txCount,
+                balance: ledger.balance,
+                currencyCode: baseCurrency,
+                labelStyle: labelStyle,
+                numStyle: numStyle,
+              ),
+            ),
+          ],
+          if (perLedger.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 6.0.scaled(context, ref)),
+              child: Text(
+                l10n.mineNoLedgerDetail,
+                style: labelStyle,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+/// 单本一行：左侧账本名，右侧天数/笔数/结余三格，与顶部汇总那三格同构。
+class _PerLedgerRow extends StatelessWidget {
+  const _PerLedgerRow({
+    required this.name,
+    required this.dayCount,
+    required this.txCount,
+    required this.balance,
+    required this.currencyCode,
+    required this.labelStyle,
+    required this.numStyle,
+  });
+
+  final String name;
+  final int dayCount;
+  final int txCount;
+  final double balance;
+  final String currencyCode;
+  final TextStyle? labelStyle;
+  final TextStyle numStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: BeeTokens.textSecondary(context)),
+          ),
+        ),
+        Expanded(
+          child: Row(
             children: [
               Expanded(
                 child: _StatCell(
                   label: l10n.mineDaysCount,
-                  value: day.toString(),
+                  value: dayCount.toString(),
                   labelStyle: labelStyle,
-                  numStyle: numStyle,
-                  centered: true,
+                  numStyle: numStyle.copyWith(fontSize: 15),
+                  centered: false,
                 ),
               ),
               Expanded(
                 child: _StatCell(
                   label: l10n.mineTotalRecords,
-                  value: tx.toString(),
+                  value: txCount.toString(),
                   labelStyle: labelStyle,
-                  numStyle: numStyle,
-                  centered: true,
+                  numStyle: numStyle.copyWith(fontSize: 15),
+                  centered: false,
                 ),
               ),
               Expanded(
@@ -638,19 +702,20 @@ class _AllLedgersSummarySection extends ConsumerWidget {
                   label: l10n.mineCurrentBalance,
                   value: balance,
                   isAmount: true,
-                  currencyCode: baseCurrency,
+                  currencyCode: currencyCode,
                   labelStyle: labelStyle,
                   numStyle: numStyle.copyWith(
+                    fontSize: 15,
                     color: balance >= 0
                         ? BeeTokens.textPrimary(context)
                         : BeeTokens.error(context),
                   ),
-                  centered: true,
+                  centered: false,
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ],
     );
   }
@@ -1119,10 +1184,11 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
     final effectiveAvatarPath = avatarAsync.asData?.value ?? _avatarPath;
 
     // 获取当前账本信息
-    final currentLedgerId = ref.watch(currentLedgerIdProvider);
-    final countsAsync = ref.watch(countsForLedgerProvider(currentLedgerId));
-    final balanceAsync = ref.watch(currentBalanceProvider(currentLedgerId));
-    final currentLedgerAsync = ref.watch(currentLedgerProvider);
+    // 顶部三格展示「全部账本汇总」口径（天数/笔数走跨账本聚合，结余折算到主币种），
+    // 而不再是当前账本；展开态在下方各账本明细里看逐本数字。币种取 baseCurrency。
+    final countsAll = ref.watch(countsAllProvider);
+    final balanceAsync = ref.watch(allLedgersBalanceProvider);
+    final currencyCode = ref.watch(baseCurrencyProvider).toUpperCase();
     final hide = ref.watch(hideAmountsProvider);
     final displayName = ref.watch(displayNameProvider);
     final l10n = AppLocalizations.of(context);
@@ -1136,10 +1202,9 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
         ? l10n.mineGreetingNamed(greeting.text, displayName)
         : l10n.mineSlogan;
 
-    final day = countsAsync.asData?.value.dayCount ?? 0;
-    final tx = countsAsync.asData?.value.txCount ?? 0;
+    final day = countsAll.asData?.value.dayCount ?? 0;
+    final tx = countsAll.asData?.value.txCount ?? 0;
     final balance = balanceAsync.asData?.value ?? 0.0;
-    final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
 
     // 统计信息文字颜色
     final labelStyle = Theme.of(context)

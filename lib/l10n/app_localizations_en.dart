@@ -1494,6 +1494,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineAllLedgersSummary => 'All ledgers';
 
   @override
+  String get minePerLedgerDetail => 'Per-ledger detail';
+
+  @override
+  String get mineNoLedgerDetail => 'No ledgers yet';
+
+  @override
   String get mineCloudService => 'Cloud Service';
 
   @override
@@ -2813,6 +2819,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportColumnsHint => 'Amount is always included. Without the type column, re-imports treat rows as expenses; leaving out category or account columns drops that data from the file.';
+
+  @override
+  String get exportColumnsReorderHint => 'Long-press and drag to reorder columns; the export follows this order.';
 
   @override
   String get exportPreviewTitle => 'Export preview';

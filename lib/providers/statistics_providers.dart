@@ -95,6 +95,38 @@ final currentBalanceProvider =
   return stats.balance;
 });
 
+// 统计：各账本逐本明细（天数 / 笔数 / 结余），供「我的」页展开态列出每本。
+//
+// 逐本调 getCountsForLedger + getLedgerStats，结余同 [allLedgersBalanceProvider] 一样
+// 走 native_amount（主币种口径）不再二次折算。账本名一并带出，展开行用它标注。
+final perLedgerStatsProvider = FutureProvider.autoDispose<
+    List<({int ledgerId, String name, int dayCount, int txCount, double balance})>>(
+        (ref) async {
+  final repo = ref.watch(repositoryProvider);
+  ref.watch(statsRefreshProvider);
+  final link = ref.keepAlive();
+  ref.onDispose(() => link.close());
+  final accountFeatureEnabled =
+      await ref.watch(accountFeatureEnabledProvider.future);
+
+  final result = <({int ledgerId, String name, int dayCount, int txCount, double balance})>[];
+  for (final ledger in await repo.getAllLedgers()) {
+    final counts = await repo.getCountsForLedger(ledgerId: ledger.id);
+    final stats = await repo.getLedgerStats(
+      ledgerId: ledger.id,
+      accountFeatureEnabled: accountFeatureEnabled,
+    );
+    result.add((
+      ledgerId: ledger.id,
+      name: ledger.name,
+      dayCount: counts.dayCount,
+      txCount: counts.txCount,
+      balance: stats.balance,
+    ));
+  }
+  return result;
+});
+
 // 统计：月度汇总最近值（避免loading闪烁）
 final lastMonthlyTotalsProvider = StateProvider.family<(double income, double expense)?, ({int ledgerId, DateTime month})>((ref, params) => null);
 

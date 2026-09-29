@@ -36,7 +36,7 @@ void main() {
 
     final lines = const LineSplitter()
         .convert(XlsxReader.convertXlsxToCSV(Uint8List.fromList(bytes),
-            ledgerColumnHeader: '账本'));
+            ledgerColumnHeader: '账本', summaryHeaderMarkers: const []));
 
     // 1 行表头 + 3 行数据；第二个账本的表头被合并掉。
     expect(lines, hasLength(4));
@@ -78,5 +78,51 @@ void main() {
 
   test('空 sheet 列表直接报错，不产出坏文件', () {
     expect(() => buildWorkbookBytes([]), throwsA(isA<ArgumentError>()));
+  });
+
+  test('汇总 sheet 排在第一张，回导时整表忽略', () async {
+    const summary = LedgerExportSheet(
+      ledgerId: summarySheetLedgerId,
+      ledgerName: '汇总',
+      rows: [
+        ['账本', '笔数', '收入(CNY)', '支出(CNY)', '结余(CNY)'],
+        ['华恒远', '1', '0.00', '150.00', '-150.00'],
+        ['国宇', '2', '1000.00', '80.00', '920.00'],
+      ],
+    );
+    final bytes = await buildWorkbookBytes([
+      summary,
+      _sheet(1, '华恒远', [
+        ['支出', '结构胶', '150.00'],
+      ]),
+      _sheet(2, '国宇', [
+        ['支出', '水泥', '80.00'],
+        ['收入', '工程款', '1000.00'],
+      ]),
+    ]);
+
+    expect(Excel.decodeBytes(bytes).tables.keys.first, '汇总',
+        reason: '多账本导出的第一张 sheet 就是汇总页');
+
+    final lines = const LineSplitter().convert(
+      XlsxReader.convertXlsxToCSV(
+        Uint8List.fromList(bytes),
+        ledgerColumnHeader: '账本',
+        summaryHeaderMarkers: const ['笔数', '结余'],
+      ),
+    );
+
+    // 1 行表头 + 3 行真实交易。汇总页若没被跳过：它会当上参考表头，两张真账本全被
+    // 丢掉（数据静默全丢），而它自己的数字行会被灌进一个叫「汇总」的假账本。
+    expect(lines, hasLength(4));
+    expect(lines.first, '账本,类型,分类,金额');
+    expect(lines.where((line) => line.startsWith('汇总,')), isEmpty);
+    expect(lines.where((line) => line.startsWith('华恒远,')), hasLength(1));
+    expect(lines.where((line) => line.startsWith('国宇,')), hasLength(2));
+    expect(
+      lines.where((line) => line.contains('1000.00')),
+      hasLength(1),
+      reason: '汇总页里的 1000.00 不该被当成一笔交易读回来',
+    );
   });
 }

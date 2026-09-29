@@ -13,12 +13,15 @@ class XlsxReader {
   ///   多账本导出是每账本一张 sheet，合并成一份 CSV 后必须靠这一列记住每行的来源
   ///   sheet，否则下游会把所有交易灌进用户当前所在的那一个账本。做成必填参数，
   ///   是为了让任何新增调用点都没办法悄悄退回"丢掉账本归属"的旧行为。
+  /// - [summaryHeaderMarkers]: 汇总 sheet 的表头特征词（如「笔数」「结余」）。多账本
+  ///   导出的第一张 sheet 是逐本统计而非账单，必须整表跳过，同必填的理由。
   ///
   /// 返回:
   /// - CSV 格式的字符串，每行用 \n 分隔，字段用逗号分隔，第 0 列是账本名
   static String convertXlsxToCSV(
     Uint8List bytes, {
     required String ledgerColumnHeader,
+    required List<String> summaryHeaderMarkers,
   }) {
     try {
       // 解码 Excel 文件
@@ -83,6 +86,11 @@ class XlsxReader {
         }
         if (rows.isEmpty) continue;
 
+        // 汇总 sheet 整表跳过：它若排在最前，会当上后面比对的参考表头，每张真账本
+        // 都因表头对不上被丢掉（数据全丢还不报错），而它自己的行会被当成交易灌进
+        // 一个叫「汇总」的账本。
+        if (_isSummaryHeader(rows.first, summaryHeaderMarkers)) continue;
+
         // 第 0 列贴上来源 sheet 名；表头行贴列名。sheet 名同样要过 CSV 转义，
         // 否则带逗号的账本名会把整行的列数撑乱。
         final stamped = <List<String>>[
@@ -120,6 +128,16 @@ class XlsxReader {
       return '"${text.replaceAll('"', '""')}"';
     }
     return text;
+  }
+
+  /// 表头里每个 [markers] 都能在某一列上匹配到，就认定这是汇总页。
+  ///
+  /// 用「包含」而不是「整行相等」：金额列表头带着币种后缀（收入(CNY)），用户也可能
+  /// 在 Excel 里自己动过列。
+  static bool _isSummaryHeader(List<String> headerRow, List<String> markers) {
+    if (markers.isEmpty) return false;
+    final cells = headerRow.map((cell) => cell.trim()).toList();
+    return markers.every((marker) => cells.any((cell) => cell.contains(marker)));
   }
 
   static bool _sameHeader(List<String> left, List<String> right) {

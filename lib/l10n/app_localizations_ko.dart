@@ -2824,6 +2824,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportColumnsReorderHint => '길게 누른 뒤 드래그하면 열 순서를 바꿀 수 있으며, 내보낼 때 이 순서대로 됩니다.';
 
   @override
+  String get exportSummarySheetName => '요약';
+
+  @override
+  String get exportSummaryColCount => '건수';
+
+  @override
+  String get exportSummaryColIncome => '수입';
+
+  @override
+  String get exportSummaryColExpense => '지출';
+
+  @override
+  String get exportSummaryColBalance => '잔액';
+
+  @override
   String get exportPreviewTitle => '내보내기 미리보기';
 
   @override

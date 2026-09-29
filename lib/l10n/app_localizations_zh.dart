@@ -2824,6 +2824,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportColumnsReorderHint => '长按并拖动可调整列顺序，导出时按此顺序排列。';
 
   @override
+  String get exportSummarySheetName => '汇总';
+
+  @override
+  String get exportSummaryColCount => '笔数';
+
+  @override
+  String get exportSummaryColIncome => '收入';
+
+  @override
+  String get exportSummaryColExpense => '支出';
+
+  @override
+  String get exportSummaryColBalance => '结余';
+
+  @override
   String get exportPreviewTitle => '导出预览';
 
   @override
@@ -10782,6 +10797,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportColumnsReorderHint => '長按並拖動可調整欄位順序，匯出時依此順序排列。';
+
+  @override
+  String get exportSummarySheetName => '匯總';
+
+  @override
+  String get exportSummaryColCount => '筆數';
+
+  @override
+  String get exportSummaryColIncome => '收入';
+
+  @override
+  String get exportSummaryColExpense => '支出';
+
+  @override
+  String get exportSummaryColBalance => '結餘';
 
   @override
   String get exportPreviewTitle => '匯出預覽';

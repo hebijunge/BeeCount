@@ -5384,6 +5384,36 @@ abstract class AppLocalizations {
   /// **'Long-press and drag to reorder columns; the export follows this order.'**
   String get exportColumnsReorderHint;
 
+  /// No description provided for @exportSummarySheetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get exportSummarySheetName;
+
+  /// No description provided for @exportSummaryColCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get exportSummaryColCount;
+
+  /// No description provided for @exportSummaryColIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Income'**
+  String get exportSummaryColIncome;
+
+  /// No description provided for @exportSummaryColExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get exportSummaryColExpense;
+
+  /// No description provided for @exportSummaryColBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get exportSummaryColBalance;
+
   /// No description provided for @exportPreviewTitle.
   ///
   /// In en, this message translates to:

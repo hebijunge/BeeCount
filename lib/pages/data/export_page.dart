@@ -279,12 +279,19 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           asExcel: _format == ExportFormat.excel,
           columns: {..._columns},
           columnOrder: List.of(_columnOrder),
+          withSummarySheet: _withSummarySheet(ledgerIds),
+          baseCurrency: ref.read(baseCurrencyProvider),
         ),
       ),
     );
     if (confirmed != true) return;
     await _export(repo, ledgerIds);
   }
+
+  /// 汇总 sheet 只在「Excel + 多账本」时出：CSV 是一张合并表，没有 sheet 可以隔开
+  /// 汇总行，混进去会被当成交易回导。
+  bool _withSummarySheet(List<int> ledgerIds) =>
+      _format == ExportFormat.excel && ledgerIds.length > 1;
 
   Future<void> _export(BaseRepository repo, List<int> ledgerIds) async {
     try {
@@ -324,6 +331,15 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         sheets.add(sheet);
       }
       if (!mounted) return;
+
+      // 多账本 Excel 的第一张 sheet 是逐本汇总，跟预览同一规则。
+      if (_withSummarySheet(ledgerIds)) {
+        sheets.insert(
+          0,
+          TransactionExportService.buildSummarySheet(l10n, sheets,
+              currencyCode: ref.read(baseCurrencyProvider)),
+        );
+      }
 
       final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final String path;

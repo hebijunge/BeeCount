@@ -209,7 +209,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     // 先取好注入 xlsx 的「账本」列表头：xlsxConverter 是在异步读流回调里执行的，
     // 那时 context 可能已经失效，不能就地取 l10n。
-    final ledgerHeader = AppLocalizations.of(context).exportCsvHeaderLedger;
+    final l10n = AppLocalizations.of(context);
+    final ledgerHeader = l10n.exportCsvHeaderLedger;
+    // 汇总 sheet 的识别词：多账本导出的第一张表只有「笔数/结余」这类统计列，不是账单。
+    final summaryMarkers = [l10n.exportSummaryColCount, l10n.exportSummaryColBalance];
 
     setState(() {
       _reading = true;
@@ -233,6 +236,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             return XlsxReader.convertXlsxToCSV(
               bytes,
               ledgerColumnHeader: ledgerHeader,
+              summaryHeaderMarkers: summaryMarkers,
             );
           } catch (e) {
             if (mounted) {

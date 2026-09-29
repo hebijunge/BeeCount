@@ -2824,6 +2824,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportColumnsReorderHint => 'Long-press and drag to reorder columns; the export follows this order.';
 
   @override
+  String get exportSummarySheetName => 'Summary';
+
+  @override
+  String get exportSummaryColCount => 'Rows';
+
+  @override
+  String get exportSummaryColIncome => 'Income';
+
+  @override
+  String get exportSummaryColExpense => 'Expense';
+
+  @override
+  String get exportSummaryColBalance => 'Balance';
+
+  @override
   String get exportPreviewTitle => 'Export preview';
 
   @override

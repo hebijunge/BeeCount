@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:beecount/data/repositories/base_repository.dart';
 import 'package:beecount/l10n/app_localizations.dart';
 import 'package:beecount/services/export/transaction_export_service.dart';
+import 'package:beecount/services/system/logger_service.dart';
 import 'package:beecount/styles/tokens.dart';
 import 'package:beecount/widgets/ui/ui.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,8 @@ class ExportPreviewPage extends StatefulWidget {
     required this.asExcel,
     required this.columns,
     this.columnOrder,
+    this.withSummarySheet = false,
+    this.baseCurrency = 'CNY',
   });
 
   final BaseRepository repository;
@@ -29,6 +32,11 @@ class ExportPreviewPage extends StatefulWidget {
   final bool asExcel;
   final Set<ExportColumn> columns;
   final List<ExportColumn>? columnOrder;
+
+  /// 是否在开头插一张逐本汇总 sheet —— 由导出页按「Excel + 多账本」判定后传进来，
+  /// 预览与落盘必须同一条件，否则预览看到的和文件里的不是一回事。
+  final bool withSummarySheet;
+  final String baseCurrency;
 
   @override
   State<ExportPreviewPage> createState() => _ExportPreviewPageState();
@@ -41,19 +49,23 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // 必须等首帧后再取数：_load 里要用 AppLocalizations.of(context)，而 initState 期间
+    // 依赖 InheritedWidget 会被 Flutter 断言拒绝。这个调用没被 await，异常只会静静
+    // 冒到 zone 里，页面就永远停在转圈上 —— 之前就是这样让预览彻底打不开。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
-    final l10n = AppLocalizations.of(context);
-    final service = TransactionExportService(
-      repository: widget.repository,
-      l10n: l10n,
-      context: context,
-    );
-    // 多账本时 CSV 靠「账本」列区分，Excel 靠 sheet 区分，与落盘侧同一判断。
-    final multiLedger = widget.ledgerIds.length > 1;
+    if (!mounted) return;
     try {
+      final l10n = AppLocalizations.of(context);
+      final service = TransactionExportService(
+        repository: widget.repository,
+        l10n: l10n,
+        context: context,
+      );
+      // 多账本时 CSV 靠「账本」列区分，Excel 靠 sheet 区分，与落盘侧同一判断。
+      final multiLedger = widget.ledgerIds.length > 1;
       final sheets = <LedgerExportSheet>[];
       for (final id in widget.ledgerIds) {
         sheets.add(await service.buildSheet(
@@ -65,8 +77,19 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
         ));
       }
       if (!mounted) return;
+      if (widget.withSummarySheet) {
+        sheets.insert(
+          0,
+          TransactionExportService.buildSummarySheet(
+            l10n,
+            sheets,
+            currencyCode: widget.baseCurrency,
+          ),
+        );
+      }
       setState(() => _sheets = sheets);
     } catch (e) {
+      logger.error('ExportPreview', '预览取数失败', e);
       if (!mounted) return;
       setState(() => _error = e.toString());
     }
@@ -118,8 +141,10 @@ class _PreviewBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final totalAll =
-        sheets.fold<int>(0, (sum, sheet) => sum + sheet.dataRowCount);
+    // 汇总 sheet 的行不是交易，「共 N 笔」只数各账本自己的数据行。
+    final totalAll = sheets
+        .where((sheet) => sheet.ledgerId != summarySheetLedgerId)
+        .fold<int>(0, (sum, sheet) => sum + sheet.dataRowCount);
 
     // CSV 落盘是「第一份提供表头，其余只追加数据行」，预览必须照同样规则合并，
     // 否则用户看到的行数和文件里的不是一回事。
@@ -224,42 +249,49 @@ class _LazyTable extends StatelessWidget {
     final header = rows.first;
     final widths = _columnWidths(header, rows);
     final borderColor = BeeTokens.border(context);
+    // 横向 SingleChildScrollView 给子项的是无界宽度，而纵向 viewport 要求交叉轴有界，
+    // 直接把 Column 塞进去 ListView 就断言「Vertical viewport was given unbounded
+    // width」。按列宽合计定死整张表的宽度，横向滚动和纵向列表就都成立了。
+    final tableWidth = widths.fold<double>(0, (sum, w) => sum + w);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            child: _Row(
-              cells: header,
-              widths: widths,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: BeeTokens.textPrimary(context)),
-              borderColor: borderColor,
-            ),
-          ),
-          Expanded(
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: rows.length - 1,
-              separatorBuilder: (_, __) =>
-                  Divider(height: 0.5, thickness: 0.5, color: borderColor),
-              itemBuilder: (context, index) => _Row(
-                cells: rows[index + 1],
+      child: SizedBox(
+        width: tableWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              child: _Row(
+                cells: header,
                 widths: widths,
                 style: Theme.of(context)
                     .textTheme
-                    .bodySmall
+                    .labelMedium
                     ?.copyWith(color: BeeTokens.textPrimary(context)),
                 borderColor: borderColor,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: rows.length - 1,
+                separatorBuilder: (_, __) =>
+                    Divider(height: 0.5, thickness: 0.5, color: borderColor),
+                itemBuilder: (context, index) => _Row(
+                  cells: rows[index + 1],
+                  widths: widths,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: BeeTokens.textPrimary(context)),
+                  borderColor: borderColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

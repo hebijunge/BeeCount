@@ -3,10 +3,11 @@ import '../db.dart';
 /// 分类Repository接口
 /// 定义分类相关的所有数据操作
 abstract class CategoryRepository {
-  /// 创建分类。撞同名抛 [DuplicateNameException]((name,kind) 联合唯一:同 kind
-  /// 内不重名、跨 kind 可同名,如收入「红包」+ 支出「红包」)—— UI 主动建应已先过
-  /// [isCategoryNameDuplicate];import / 自动记账等静默路径要 get-or-create 语义
-  /// 请用 [upsertCategory]。
+  /// 创建分类。同名冲突抛 [DuplicateNameException]。判重作用域是「同一父级 + 同
+  /// kind」：一级分类之间不重名，二级分类只在同一父级下不重名，所以二级可以和任意
+  /// 一级（包括它自己的父级）同名，跨 kind 也始终允许同名（如收入「红包」+ 支出
+  /// 「红包」）—— UI 主动建应已先过 [isCategoryNameDuplicate];import / 自动记账等
+  /// 静默路径要 get-or-create 语义请用 [upsertCategory]。
   ///
   /// 可选 [syncId] / [level] / [parentId]:给 seed 这种需要显式塞确定性
   /// syncId / 指定层级和父级的路径用;UI 主动建一般不传(走默认 L1 + auto v4 id)。
@@ -48,10 +49,10 @@ abstract class CategoryRepository {
   /// 批量删除分类
   Future<void> deleteCategoriesByIds(List<int> ids);
 
-  /// 按 (name,kind) 取分类(同 kind 内唯一,跨 kind 可同名);不存在则按给定
-  /// kind/icon/sortOrder 建一条。命中已存在时,icon/sortOrder 参数被忽略 —— 保留
-  /// 已有那条的元数据((name,kind) 唯一模型下,同 kind 的 "X" 是同一个分类,不该
-  /// 被外部 import 覆盖图标/排序)。
+  /// 在「一级分类」作用域内按 (name,kind) 取分类，不存在则按给定 kind/icon/sortOrder
+  /// 建一条（insert 不带 parentId/level，产出即 L1 分类）。同名的二级分类不算命中，
+  /// 不会被复用。命中已存在时,icon/sortOrder 参数被忽略 —— 保留已有那条的元数据,
+  /// 不让外部 import 覆盖它的图标/排序。
   Future<int> upsertCategory({
     required String name,
     required String kind,
@@ -77,11 +78,14 @@ abstract class CategoryRepository {
   /// 获取可用于记账的分类（叶子分类）
   Future<List<Category>> getUsableCategories(String kind);
 
-  /// 检查分类名称是否重复(同 kind 内判重,跨 kind 允许同名)
+  /// 检查分类名称是否重复。作用域 = 同 [kind] + 同父级 [parentId]：
+  /// [parentId] 为 null 只在一级分类之间判重；非 null 只在该父级的子分类里判重。
+  /// 跨父级、跨层级都允许同名，跨 kind 同样允许。
   Future<bool> isCategoryNameDuplicate({
     required String name,
     required String kind,
     int? excludeId,
+    int? parentId,
   });
 
   /// 检查分类是否有子分类

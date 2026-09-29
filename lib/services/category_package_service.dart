@@ -184,9 +184,13 @@ class CategoryPackageService {
 
     // 3. 获取现有分类
     final existingCategories = await repository.getAllCategories();
-    // 按 (name, kind) 判重,允许跨 kind 同名(收入「红包」+ 支出「红包」)
+    // 分类名只在「同一父级 + 同 kind」作用域内唯一，所以判重 key 必须带父级 id
+    // （一级行的父级段是 null）。跨 kind 可同名，二级与一级同名、不同父级的二级同名
+    // 也都合法。
+    String scopedKey(int? parentId, String kind, String name) =>
+        '$parentId|$kind|${name.toLowerCase()}';
     final existingKeys = existingCategories
-        .map((c) => '${c.name.toLowerCase()}|${c.kind}')
+        .map((c) => scopedKey(c.parentId, c.kind, c.name))
         .toSet();
 
     // 4. 处理图标文件：复制到正式目录
@@ -239,7 +243,7 @@ class CategoryPackageService {
     for (final item in level1Items) {
       final name = item['name'] as String;
       final kind = item['kind'] as String? ?? 'expense';
-      if (existingKeys.contains('${name.toLowerCase()}|$kind')) {
+      if (existingKeys.contains(scopedKey(null, kind, name))) {
         skipped++;
         continue;
       }
@@ -261,31 +265,36 @@ class CategoryPackageService {
         communityIconId: Value(item['community_icon_id'] as String?),
       ));
       imported++;
-      existingKeys.add('${name.toLowerCase()}|$kind');
+      existingKeys.add(scopedKey(null, kind, name));
     }
 
     // 重新获取分类列表（包含刚导入的）
     final updatedCategories = await repository.getAllCategories();
+    // 父级只能是一级分类，所以「父名 → 父 id」只从一级行建索引。把二级行也收进来，
+    // 同名的二级就会抢走父 id，导致二级挂到错误的父级下面。
     final keyToId = {
-      for (var c in updatedCategories) '${c.name.toLowerCase()}|${c.kind}': c.id
+      for (final c in updatedCategories)
+        if (c.parentId == null) '${c.name.toLowerCase()}|${c.kind}': c.id
     };
 
     // 导入二级分类
     for (final item in level2Items) {
       final name = item['name'] as String;
       final kind = item['kind'] as String? ?? 'expense';
-      if (existingKeys.contains('${name.toLowerCase()}|$kind')) {
-        skipped++;
-        continue;
-      }
 
-      // 父分类与子分类同 kind,按 (parentName, kind) 查父 id
+      // 父分类与子分类同 kind，父 id 只从一级行的索引里查
       final parentName = item['parent_name'] as String?;
       final parentId =
           parentName != null ? keyToId['${parentName.toLowerCase()}|$kind'] : null;
 
       if (parentId == null) {
         logger.warning(_tag, '找不到父分类: $parentName, 跳过 $name');
+        skipped++;
+        continue;
+      }
+
+      // 判重要等父级确定后才能落到「该父级 + 同 kind」作用域里
+      if (existingKeys.contains(scopedKey(parentId, kind, name))) {
         skipped++;
         continue;
       }
@@ -307,7 +316,7 @@ class CategoryPackageService {
         communityIconId: Value(item['community_icon_id'] as String?),
       ));
       imported++;
-      existingKeys.add('${name.toLowerCase()}|$kind');
+      existingKeys.add(scopedKey(parentId, kind, name));
     }
 
     // 6. 清理临时目录

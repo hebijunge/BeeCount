@@ -2501,11 +2501,16 @@ class ConfigExportService {
       try {
         final items = config.categories!.items;
 
-        // 获取现有分类名称集合（用于去重）
+        // 获取现有分类集合（用于去重）
         final existingCategories = await repository.getAllCategories();
-        // 按 (name, kind) 去重,允许跨 kind 同名(收入/支出可同名)
-        final existingKeys =
-            existingCategories.map((c) => '${c.name.toLowerCase()}|${c.kind}').toSet();
+        // 分类名只在「同父级 + 同 kind」作用域内唯一，所以去重 key 必须带上父级 id
+        // （一级分类的父级段为 null）。只按 (name, kind) 去重会让二级被任意一个同名
+        // 一级遮蔽掉，导入时静默漏建。
+        String scopedKey(int? parentId, String kind, String name) =>
+            '$parentId|$kind|${name.toLowerCase()}';
+        final existingKeys = existingCategories
+            .map((c) => scopedKey(c.parentId, c.kind, c.name))
+            .toSet();
 
         // 特殊处理：更新虚拟转账分类（如果存在）
         final transferItem = items.firstWhere(
@@ -2536,7 +2541,7 @@ class ConfigExportService {
         // 第一步：过滤并批量插入一级分类
         final level1Items = items.where((item) => item.parentName == null).toList();
         final newLevel1Items = level1Items.where((item) =>
-          !existingKeys.contains('${item.name.toLowerCase()}|${item.kind}')
+          !existingKeys.contains(scopedKey(null, item.kind, item.name))
         ).toList();
 
         if (newLevel1Items.isNotEmpty) {
@@ -2555,48 +2560,55 @@ class ConfigExportService {
           await repository.batchInsertCategories(level1Companions);
         }
 
-        // 第二步：查询所有分类，构建名称到ID的映射
+        // 第二步：重新查询所有分类（含刚插入的一级），重建索引
         final allCategories = await repository.getAllCategories();
-        final keyToId = <String, int>{
-          for (var cat in allCategories) '${cat.name.toLowerCase()}|${cat.kind}': cat.id
+        // 父级只能是一级分类，所以「父名 → 父 id」只从一级行建索引。把二级行也收进来，
+        // 同名的二级就会抢走父 id，导致二级分类挂到错误的父级下面。
+        final topLevelKeyToId = <String, int>{
+          for (final cat in allCategories)
+            if (cat.parentId == null) '${cat.name.toLowerCase()}|${cat.kind}': cat.id
         };
+        // 判重集合同样按父级作用域重建
+        final updatedKeys = allCategories
+            .map((c) => scopedKey(c.parentId, c.kind, c.name))
+            .toSet();
 
-        // 更新现有分类集合（包含刚插入的一级分类），按 (name, kind)
-        final updatedKeys = allCategories.map((c) => '${c.name.toLowerCase()}|${c.kind}').toSet();
-
-        // 第三步：过滤并批量插入二级分类
+        // 第三步：逐个解析父级，并在「该父级 + 同 kind」作用域内判重后插入
         final level2Items = items.where((item) => item.parentName != null).toList();
-        final newLevel2Items = level2Items.where((item) =>
-          !updatedKeys.contains('${item.name.toLowerCase()}|${item.kind}')
-        ).toList();
         final level2Companions = <CategoriesCompanion>[];
+        var level2Existing = 0;
 
-        for (final item in newLevel2Items) {
-          // 父分类与子分类同 kind,按 (parentName, kind) 查父 id
-          final parentId = keyToId['${item.parentName?.toLowerCase()}|${item.kind}'];
-          if (parentId != null) {
-            level2Companions.add(CategoriesCompanion.insert(
-              name: item.name,
-              kind: item.kind,
-              icon: d.Value(item.icon),
-              sortOrder: d.Value(item.sortOrder),
-              parentId: d.Value(parentId),
-              level: d.Value(item.level),
-              iconType: d.Value(item.iconType ?? 'material'),
-              customIconPath: d.Value(item.customIconPath),
-              communityIconId: d.Value(item.communityIconId),
-            ));
-          } else {
-            logger.warning('ConfigImport', '找不到父分类 "${item.parentName}"，跳过二级分类: ${item.name}');
+        for (final item in level2Items) {
+          final parentId =
+              topLevelKeyToId['${item.parentName!.toLowerCase()}|${item.kind}'];
+          if (parentId == null) {
+            logger.warning('ConfigImport',
+                '找不到父分类 "${item.parentName}"，跳过二级分类: ${item.name}');
+            continue;
           }
+          if (updatedKeys.contains(scopedKey(parentId, item.kind, item.name))) {
+            level2Existing++;
+            continue;
+          }
+          level2Companions.add(CategoriesCompanion.insert(
+            name: item.name,
+            kind: item.kind,
+            icon: d.Value(item.icon),
+            sortOrder: d.Value(item.sortOrder),
+            parentId: d.Value(parentId),
+            level: d.Value(item.level),
+            iconType: d.Value(item.iconType ?? 'material'),
+            customIconPath: d.Value(item.customIconPath),
+            communityIconId: d.Value(item.communityIconId),
+          ));
         }
 
         if (level2Companions.isNotEmpty) {
           await repository.batchInsertCategories(level2Companions);
         }
 
-        final skippedCount = (level1Items.length - newLevel1Items.length) +
-                             (level2Items.length - newLevel2Items.length);
+        final skippedCount =
+            (level1Items.length - newLevel1Items.length) + level2Existing;
         logger.info('ConfigImport',
           '分类已批量导入: 一级${newLevel1Items.length}条, 二级${level2Companions.length}条'
           '${skippedCount > 0 ? ' (跳过已存在: $skippedCount条)' : ''}');
@@ -2693,8 +2705,8 @@ class ConfigExportService {
         final ledgerNameToId = {for (var l in ledgers) l.name: l.id};
 
         final categories = await repository.getAllCategories();
-        // 按 (name, kind) 映射,跨 kind 同名各自命中
-        final catKeyToId = {for (var c in categories) '${c.name.toLowerCase()}|${c.kind}': c.id};
+        // 周期账单只带分类名，同名多行时按一级优先取（见 helper 注释）
+        final catKeyToId = _categoryKeyToIdPreferTopLevel(categories);
 
         final accounts = await repository.getAllAccounts();
         final accountNameToId = {for (var a in accounts) a.name: a.id};
@@ -2784,8 +2796,10 @@ class ConfigExportService {
         final ledgerNameToId = {for (var l in ledgers) l.name: l.id};
 
         final categories = await repository.getAllCategories();
-        // 分类预算只针对支出一级分类,按 (name, kind) 映射
-        final catKeyToId = {for (var c in categories) '${c.name.toLowerCase()}|${c.kind}': c.id};
+        // 分类预算针对的是一级分类，所以只索引一级行 —— 同名的二级不应参与匹配。
+        final catKeyToId = _categoryKeyToIdPreferTopLevel(
+          categories.where((c) => c.parentId == null).toList(),
+        );
 
         for (final item in items) {
           // 通过名称查找账本 ID
@@ -2891,4 +2905,23 @@ class ConfigExportService {
     await importFromYaml(yamlContent, repository: repository, ledgerId: ledgerId, options: options);
     logger.info('ConfigImport', '配置已从文件导入: $filePath');
   }
+}
+
+/// 按 (name, kind) 建分类反查索引，给出**确定性**的取法。
+///
+/// 分类名只在「同一父级 + 同 kind」作用域内唯一，所以放开同名后这个 key 可能对应
+/// 多行。周期账单 / 预算的 YAML 里只写了分类名、没写父级，无从精确判定，因此固定优
+/// 先一级分类，其次取 sortOrder 最小的那条 —— 否则 Map 字面量会让后遍历到的行静默
+/// 覆盖前面的，同一条 YAML 在不同设备上导入会挂到不同分类。
+Map<String, int> _categoryKeyToIdPreferTopLevel(List<Category> categories) {
+  final sorted = [...categories]
+    ..sort((a, b) {
+      final byLevel = (a.parentId == null ? 0 : 1).compareTo(b.parentId == null ? 0 : 1);
+      return byLevel != 0 ? byLevel : a.sortOrder.compareTo(b.sortOrder);
+    });
+  final result = <String, int>{};
+  for (final c in sorted) {
+    result.putIfAbsent('${c.name.toLowerCase()}|${c.kind}', () => c.id);
+  }
+  return result;
 }

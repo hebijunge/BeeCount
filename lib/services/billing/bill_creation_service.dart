@@ -237,9 +237,14 @@ class BillCreationService {
     if (categories.isEmpty) return null;
 
     if (aiCategoryName != null && aiCategoryName.isNotEmpty) {
-      // 完全匹配
-      final exact =
-          categories.firstWhereOrNull((c) => c.name == aiCategoryName);
+      // 完全匹配。同名分类可能横跨层级（名字只在父级作用域内唯一），统一按「一级优
+      // 先」取，避免同一条账单在不同设备上挂到不同的分类。
+      final candidates =
+          categories.where((c) => c.name == aiCategoryName).toList();
+      final exact = candidates.isEmpty
+          ? null
+          : (candidates.firstWhereOrNull((c) => c.parentId == null) ??
+              candidates.first);
       if (exact != null) {
         logger.debug(_tag,
             '[分类匹配-完全] AI 分类"$aiCategoryName" → ${exact.name}(ID:${exact.id})');

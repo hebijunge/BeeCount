@@ -537,11 +537,15 @@ class AppLinkService {
         ? await repo.getTopLevelCategories('income')
         : await repo.getTopLevelCategories('expense');
 
+    // 分类名只在父级作用域内唯一，所以名字反查必然有歧义，规则与其它路径统一为「一级
+    // 优先」：先把一级整轮扫完，再按顺序扫各一级底下的二级。混在一轮里扫的话，排在前
+    // 面的那个一级的子分类会抢掉后面同名一级的位置。
     for (final cat in categories) {
       if (cat.name == name) {
         return cat.id;
       }
-      // 检查子分类
+    }
+    for (final cat in categories) {
       final subCats = await repo.getSubCategories(cat.id);
       for (final sub in subCats) {
         if (sub.name == name) {

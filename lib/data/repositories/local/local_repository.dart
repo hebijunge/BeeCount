@@ -1420,9 +1420,12 @@ class LocalRepository extends BaseRepository {
 
   @override
   Future<bool> isCategoryNameDuplicate(
-          {required String name, required String kind, int? excludeId}) =>
+          {required String name,
+          required String kind,
+          int? excludeId,
+          int? parentId}) =>
       _categoryRepo.isCategoryNameDuplicate(
-          name: name, kind: kind, excludeId: excludeId);
+          name: name, kind: kind, excludeId: excludeId, parentId: parentId);
 
   @override
   Future<bool> hasSubCategories(int categoryId) =>
@@ -1973,10 +1976,13 @@ class LocalRepository extends BaseRepository {
   }
 
   Future<int> _ensureBalanceSettlementCategory(String kind) async {
+    // 结算分类是这张表自己用 createCategory 建的一级行，所以只在一级里找。放开同名
+    // 后不过滤 parentId 的话，可能命中用户自建的二级「余额结算」并把交易挂上去。
     final existing = (await getAllCategories()).where(
       (category) =>
           category.name == _balanceSettlementCategoryName &&
-          category.kind == kind,
+          category.kind == kind &&
+          category.parentId == null,
     );
     final category = existing.isEmpty ? null : existing.first;
     if (category != null) return category.id;

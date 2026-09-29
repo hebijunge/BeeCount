@@ -51,7 +51,12 @@ extension _SyncEngineResolvers on SyncEngine {
     return acc?.id;
   }
 
-  /// 根据分类名和类型查找 categoryId
+  /// 根据分类名和类型查找 categoryId。
+  ///
+  /// 只有 payload 没带 syncId 的老数据才会走到这条名字 fallback。分类名的作用域是
+  /// 「同一父级 + 同 kind」，所以同 kind 下可以存在多行同名（不同父级的二级分类、
+  /// 或与一级同名）。按 level 升序取第一条：一级优先，老 payload 的分类名基本都是一
+  /// 级分类。必须 limit(1) —— getSingleOrNull 命中多行会直接抛，整条 change 就废了。
   Future<int?> _resolveCategoryId({
     String? categoryName,
     String? categoryKind,
@@ -62,6 +67,9 @@ extension _SyncEngineResolvers on SyncEngine {
     if (categoryKind != null) {
       query.where((c) => c.kind.equals(categoryKind));
     }
+    query
+      ..orderBy([(c) => d.OrderingTerm(expression: c.level)])
+      ..limit(1);
     final cat = await query.getSingleOrNull();
     return cat?.id;
   }

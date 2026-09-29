@@ -665,12 +665,17 @@ class SeedService {
     final categories = (await repository.getAllCategories())
         .where((category) => category.kind == kind)
         .toList();
+    // 分类名的作用域是「同一父级 + 同 kind」，所以索引 key 必须带上父级：一级用
+    // 空父级段，二级用它的 parentId。平铺按 name 建索引会让一级/二级互相遮蔽 ——
+    // 结果是种子分类漏建，或把已存在的二级误当成父级分组后整组跳过。
+    String scopedKey(int? parentId, String name) => '${parentId ?? ''}|$name';
     final bySyncId = <String, Category>{
       for (final category in categories)
         if (category.syncId != null) category.syncId!: category,
     };
     final byName = <String, Category>{
-      for (final category in categories) category.name: category,
+      for (final category in categories)
+        scopedKey(category.parentId, category.name): category,
     };
     var nextTopLevelOrder = categories
             .where((category) => category.level == 1)
@@ -694,7 +699,10 @@ class SeedService {
           level: 1,
           key: key,
         );
-        if (bySyncId.containsKey(syncId) || byName.containsKey(name)) continue;
+        if (bySyncId.containsKey(syncId) ||
+            byName.containsKey(scopedKey(null, name))) {
+          continue;
+        }
 
         final id = await repository.createCategory(
           name: name,
@@ -706,7 +714,7 @@ class SeedService {
         final category = await repository.getCategoryById(id);
         if (category != null) {
           if (category.syncId != null) bySyncId[category.syncId!] = category;
-          byName[category.name] = category;
+          byName[scopedKey(category.parentId, category.name)] = category;
         }
         createdCount++;
       }
@@ -726,7 +734,8 @@ class SeedService {
         key: parentKey,
       );
 
-      var parent = bySyncId[parentSyncId] ?? byName[parentName];
+      var parent =
+          bySyncId[parentSyncId] ?? byName[scopedKey(null, parentName)];
       if (parent != null && parent.level != 1) {
         // 不将已存在的二级分类转换为一级分类。
         continue;
@@ -742,7 +751,7 @@ class SeedService {
         parent = await repository.getCategoryById(id);
         if (parent == null) continue;
         if (parent.syncId != null) bySyncId[parent.syncId!] = parent;
-        byName[parent.name] = parent;
+        byName[scopedKey(parent.parentId, parent.name)] = parent;
         createdCount++;
       }
 
@@ -762,7 +771,8 @@ class SeedService {
           level: 2,
           key: childKey,
         );
-        if (bySyncId.containsKey(childSyncId) || byName.containsKey(childName)) {
+        if (bySyncId.containsKey(childSyncId) ||
+            byName.containsKey(scopedKey(parent.id, childName))) {
           continue;
         }
 
@@ -777,7 +787,7 @@ class SeedService {
         final category = await repository.getCategoryById(id);
         if (category != null) {
           if (category.syncId != null) bySyncId[category.syncId!] = category;
-          byName[category.name] = category;
+          byName[scopedKey(category.parentId, category.name)] = category;
         }
         createdCount++;
       }

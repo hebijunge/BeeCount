@@ -444,14 +444,25 @@ extension SyncEngineApplyExt on SyncEngine {
     final icon = payload['icon'] as String?;
     final iconType = payload['iconType'] as String? ?? 'material';
     final parentName = payload['parentName'] as String?;
+    final parentSyncId = payload['parentSyncId'] as String?;
 
-    // 解析 parentId
+    // 解析 parentId：syncId 优先（跨设备稳定，父级改过名也能命中），名字只做兜底。
+    // 兜底查询限定在一级作用域并 limit(1)：一级之间仍不允许重名，但历史脏数据出现
+    // 多行时不能抛异常把整条 change 废掉。
     int? parentId;
-    if (parentName != null && parentName.isNotEmpty) {
+    if (parentSyncId != null && parentSyncId.isNotEmpty) {
+      final bySyncId = await (db.select(db.categories)
+            ..where((c) => c.syncId.equals(parentSyncId))
+            ..limit(1))
+          .getSingleOrNull();
+      parentId = bySyncId?.id;
+    }
+    if (parentId == null && parentName != null && parentName.isNotEmpty) {
       final parent = await (db.select(db.categories)
             ..where((c) => c.name.equals(parentName))
             ..where((c) => c.kind.equals(kind))
-            ..where((c) => c.level.equals(1)))
+            ..where((c) => c.level.equals(1) & c.parentId.isNull())
+            ..limit(1))
           .getSingleOrNull();
       parentId = parent?.id;
     }
@@ -460,21 +471,34 @@ extension SyncEngineApplyExt on SyncEngine {
           ..where((c) => c.syncId.equals(syncId)))
         .getSingleOrNull();
 
-    // Fallback：syncId 查不到 → 本地可能是 seed 默认分类（syncId 为 NULL）。
-    // 按 name + kind 匹配 NULL syncId 行，把 syncId 补上。避免 device B 首次
-    // pull 远端分类插第二份同名 seed。
+    // Fallback：syncId 查不到 → 本地可能是 seed 默认分类（syncId 为 NULL）。按
+    // 「同 kind + 同父级作用域」匹配 NULL syncId 行再补 syncId，避免 device B 首次
+    // pull 时插出第二份同名 seed。父级维度必须有：分类名现在只在父级内唯一，只按
+    // name+kind 收编会把远端 syncId 绑到另一个父级下的同名分类，之后引用它的交易
+    // 全部错挂。level=2 但父级解析不出来时宁可不收编，让它插成独立新行。
     if (existing == null && name.isNotEmpty) {
-      final seeded = await (db.select(db.categories)
-            ..where((c) => c.name.equals(name))
-            ..where((c) => c.kind.equals(kind))
-            ..where((c) => c.syncId.isNull()))
-          .getSingleOrNull();
-      if (seeded != null) {
-        await (db.update(db.categories)..where((c) => c.id.equals(seeded.id)))
-            .write(CategoriesCompanion(syncId: d.Value(syncId)));
-        existing = seeded;
+      if (level == 2 && parentId == null) {
         logger.info('SyncEngine',
-            'pull: 收编本地 seed 分类 name="$name" kind=$kind → syncId=$syncId');
+            'pull: 二级分类 name="$name" kind=$kind 父级未解析，跳过 seed 收编以免绑错分类');
+      } else {
+        final scoped = db.select(db.categories)
+          ..where((c) => c.name.equals(name))
+          ..where((c) => c.kind.equals(kind))
+          ..where((c) => c.syncId.isNull());
+        if (level == 2) {
+          final int scopeParentId = parentId!;
+          scoped.where((c) => c.parentId.equals(scopeParentId));
+        } else {
+          scoped.where((c) => c.parentId.isNull());
+        }
+        final seeded = await (scoped..limit(1)).getSingleOrNull();
+        if (seeded != null) {
+          await (db.update(db.categories)..where((c) => c.id.equals(seeded.id)))
+              .write(CategoriesCompanion(syncId: d.Value(syncId)));
+          existing = seeded;
+          logger.info('SyncEngine',
+              'pull: 收编本地 seed 分类 name="$name" kind=$kind → syncId=$syncId');
+        }
       }
     }
 

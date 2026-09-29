@@ -31,12 +31,17 @@ class LocalCategoryRepository implements CategoryRepository {
     int? parentId,
     String? syncId,
   }) async {
-    // 撞同名抛 DuplicateNameException((name,kind) 联合唯一,跨 kind 可同名)。caller 显式 handle:
+    // 同父级 + 同 kind 撞名抛 DuplicateNameException(一级分类 parentId 为 null,
+    // 所以二级可与任意一级同名,不同父级的二级也可同名)。caller 显式 handle:
     //   - UI 主动建 → 先过 isCategoryNameDuplicate 警告;真冲突 try/catch 弹 toast
     //   - import / 自动记账等静默路径 → 改用 upsertCategory(get-or-create)
     // 静默复用会把收入 tx 错挂到 expense 分类或吞掉 caller 传的 icon/sortOrder。
     final existing = await (db.select(db.categories)
-          ..where((c) => c.name.equals(name) & c.kind.equals(kind)))
+          ..where((c) => parentId == null
+              ? c.name.equals(name) & c.kind.equals(kind) & c.parentId.isNull()
+              : c.name.equals(name) &
+                  c.kind.equals(kind) &
+                  c.parentId.equals(parentId)))
         .get();
     if (existing.isNotEmpty) {
       throw DuplicateNameException(
@@ -67,8 +72,13 @@ class LocalCategoryRepository implements CategoryRepository {
     int? sortOrder,
     String? syncId,
   }) async {
+    // 二级分类只在同一个父级下判重，因此可以与一级同名、也可以与其他父级下的
+    // 二级同名。
     final existing = await (db.select(db.categories)
-          ..where((c) => c.name.equals(name) & c.kind.equals(kind)))
+          ..where((c) =>
+              c.name.equals(name) &
+              c.kind.equals(kind) &
+              c.parentId.equals(parentId)))
         .get();
     if (existing.isNotEmpty) {
       throw DuplicateNameException(
@@ -203,9 +213,14 @@ class LocalCategoryRepository implements CategoryRepository {
     String? icon,
     int? sortOrder,
   }) async {
-    // (name,kind) 联合唯一:按 (name,kind) 找;有则复用,无则用给定 icon/sortOrder 建。
+    // 本方法 insert 时不带 parentId/level，产出的就是一级分类，所以 get-or-create
+    // 只在一级作用域内比对：命中同名的二级分类不能复用，否则交易会被错挂到别人的
+    // 子分类下。
     final existing = await (db.select(db.categories)
-          ..where((c) => c.name.equals(name) & c.kind.equals(kind)))
+          ..where((c) =>
+              c.name.equals(name) &
+              c.kind.equals(kind) &
+              c.parentId.isNull()))
         .get();
     if (existing.isNotEmpty) return existing.first.id;
     return db.into(db.categories).insert(CategoriesCompanion.insert(
@@ -254,9 +269,16 @@ class LocalCategoryRepository implements CategoryRepository {
     required String name,
     required String kind,
     int? excludeId,
+    int? parentId,
   }) async {
     var expression =
         db.categories.name.equals(name) & db.categories.kind.equals(kind);
+
+    // 判重限定在同一父级作用域内：parentId 为 null 即「一级分类之间」比名，
+    // 非 null 即「该父级的子分类之间」比名。跨层级/跨父级都允许同名。
+    expression = parentId == null
+        ? expression & db.categories.parentId.isNull()
+        : expression & db.categories.parentId.equals(parentId);
 
     if (excludeId != null) {
       expression = expression & db.categories.id.equals(excludeId).not();

@@ -134,6 +134,11 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
 
   bool get isCreatingSubCategory => widget.parentCategory != null;
 
+  /// 重名判定的作用域父级：一级分类为 null（只在一级之间比名），二级分类为当前选中的
+  /// 父分类。编辑时取「目标」父级，所以改名+换父级一起提交也能按新作用域判定。
+  int? get _targetParentId =>
+      _isSubCategory ? _selectedParentCategory?.id : null;
+
   /// 检查分类名称是否重复
   Future<void> _checkNameDuplicate() async {
     final name = _nameController.text.trim();
@@ -152,6 +157,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       name: name,
       kind: widget.kind,
       excludeId: excludeId,
+      parentId: _targetParentId,
     );
 
     if (mounted) {
@@ -447,7 +453,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       return;
     }
 
-    // 保存前再次检查名称重复
+    // 保存前再次检查名称重复（按目标父级作用域判定）
     final repo = ref.read(repositoryProvider);
     final name = _nameController.text.trim();
     final excludeId = isEditing ? widget.category!.id : null;
@@ -455,6 +461,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       name: name,
       kind: widget.kind,
       excludeId: excludeId,
+      parentId: _targetParentId,
     );
 
     if (isDuplicate) {

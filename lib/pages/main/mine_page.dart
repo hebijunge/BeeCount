@@ -687,15 +687,6 @@ class _PerLedgerRow extends StatelessWidget {
               ),
               Expanded(
                 child: _StatCell(
-                  label: l10n.mineTotalRecords,
-                  value: txCount.toString(),
-                  labelStyle: labelStyle,
-                  numStyle: numStyle.copyWith(fontSize: 15),
-                  centered: false,
-                ),
-              ),
-              Expanded(
-                child: _StatCell(
                   label: l10n.mineCurrentBalance,
                   value: balance,
                   isAmount: true,

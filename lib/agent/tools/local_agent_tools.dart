@@ -929,6 +929,7 @@ final class LocalAgentTools {
   String _summaryGroupByFor(AgentToolCall call) {
     const supported = {
       'none',
+      'ledger',
       'category',
       'tag',
       'account',

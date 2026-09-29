@@ -60,9 +60,10 @@ final class LocalAgentToolCatalog {
       'groupBy': {
         'type': 'string',
         'description':
-            '可选分组维度；none 表示只返回总额。用户说“每天/按日”时传 day，“每周/按周”时传 week，“每月/按月”时传 month，“每年/按年”时传 year；趋势或分布问题首次调用也必须传入对应维度。',
+            '可选分组维度；none 表示只返回总额。用户说“每天/按日”时传 day，“每周/按周”时传 week，“每月/按月”时传 month，“每年/按年”时传 year；用户要「各账本分别」多少时传 ledger。趋势或分布问题首次调用也必须传入对应维度。',
         'enum': [
           'none',
+          'ledger',
           'category',
           'tag',
           'account',
@@ -148,7 +149,7 @@ final class LocalAgentToolCatalog {
     core.AgentNativeToolDefinition(
       name: 'get_transaction_summary',
       description:
-          '在数据库内直接聚合账本交易，不受明细查询条数限制。只读，不会修改数据。不传 ledgerIds 时只统计当前账本，可用 ledgerIds 同时统计多本（取值来自上下文账本清单）；跨本时金额已折算到应用主币种，可直接相加，此时 currency 返回的就是主币种。start 包含、end 不包含；缺少时间范围时使用最近 30 天。types 不传表示收入、支出和转账全部统计；groupBy 不传表示只返回总额，也可按分类、标签、账户或日/周/月/年分组。可用 ID 或名称筛选分类、标签和账户。返回 currency、periodStart、periodEnd、types、totals、groups、truncated；按标签分组时交易可能出现在多个标签组，按账户分组时转账会分别提供 transferOut 和 transferIn。聚合问题优先使用本工具，不要用明细列表自行汇总。',
+          '在数据库内直接聚合账本交易，不受明细查询条数限制。只读，不会修改数据。不传 ledgerIds 时只统计当前账本，可用 ledgerIds 同时统计多本（取值来自上下文账本清单）；跨本时金额已折算到应用主币种，可直接相加，此时 currency 返回的就是主币种。start 包含、end 不包含；缺少时间范围时使用最近 30 天。types 不传表示收入、支出和转账全部统计；groupBy 不传表示只返回总额，也可按账本、分类、标签、账户或日/周/月/年分组。可用 ID 或名称筛选分类、标签和账户。返回 currency、periodStart、periodEnd、types、totals、groups、truncated；一次统计多个账本时额外返回 byLedger，内含按账本拆好的 totals。回答「各账本分别多少」必须用 byLedger 或 groupBy=ledger，严禁把 totals 的合并数重复报给每一本。按标签分组时交易可能出现在多个标签组，按账户分组时转账会分别提供 transferOut 和 transferIn。聚合问题优先使用本工具，不要用明细列表自行汇总。',
       parameters: _transactionSummaryParameters,
     ),
     core.AgentNativeToolDefinition(

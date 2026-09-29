@@ -108,6 +108,8 @@ final class LocalAgentTransactionSummaryDataSource {
     }
 
     final groups = switch (groupBy) {
+      'ledger' =>
+        await _ledgerGroups(where, variables, groupLimit: groupLimit),
       'category' => await _categoryGroups(where, variables,
           categoryLevel: categoryLevel, groupLimit: groupLimit),
       'tag' => await _tagGroups(where, variables, groupLimit: groupLimit),
@@ -126,12 +128,19 @@ final class LocalAgentTransactionSummaryDataSource {
     final truncated = groups.any(
       (group) => (group['key'] as Map<String, Object?>?)?['kind'] == 'other',
     );
+    // 跨账本查询时，无论模型有没有选 groupBy=ledger，都附带一份按账本拆好的数字。
+    // 真模型实测过它会在「一次查两本」之后把合并总数同时安到两本头上（两边都报
+    // 1700），把正确性押在模型是否选对分组维度上并不可靠。
+    final perLedger = ledgerIds.length > 1 && groupBy != 'ledger'
+        ? await _ledgerGroups(where, variables, groupLimit: groupLimit)
+        : null;
     return {
       'currency': effectiveCurrency,
       'periodStart': start.toIso8601String(),
       'periodEnd': end.toIso8601String(),
       'types': effectiveTypes,
       'totals': totalsByType,
+      if (perLedger != null) 'byLedger': perLedger,
       'groupBy': groupBy,
       'groups': groups,
       'groupsMayOverlap': groupBy == 'tag' || groupBy == 'account',
@@ -310,6 +319,53 @@ final class LocalAgentTransactionSummaryDataSource {
       ...visible.map((group) => group.toToolData()),
       other.toToolData(),
     ];
+  }
+
+  /// 按账本分组。跨账本查询时缺了它就只能拿到一个合并总数，模型无法回答「各本分别
+  /// 多少」—— 真模型实测过：一次查两本时它会把合并数整个安到其中一本头上、另一本报
+  /// 0，比查不到更容易误导人。
+  Future<List<Map<String, Object?>>> _ledgerGroups(
+    List<String> where,
+    List<d.Variable> variables, {
+    required int groupLimit,
+  }) async {
+    final rows = await _database
+        .customSelect(
+          '''
+      SELECT t.ledger_id AS ledger_id,
+             l.name AS ledger_name,
+             t.type AS type,
+             COUNT(*) AS transaction_count,
+             COALESCE(SUM(ABS(COALESCE(t.native_amount, t.amount))), 0) AS total_amount
+      FROM transactions t
+      LEFT JOIN ledgers l ON l.id = t.ledger_id
+      WHERE ${where.join(' AND ')}
+      GROUP BY t.ledger_id, l.name, t.type
+      ORDER BY t.ledger_id ASC
+      ''',
+          variables: variables,
+          readsFrom: {_database.transactions, _database.ledgers},
+        )
+        .get();
+
+    final byLedger = <int, Map<String, Object?>>{};
+    for (final row in rows) {
+      final data = row.data;
+      final ledgerId = (data['ledger_id'] as num).toInt();
+      final group = byLedger.putIfAbsent(ledgerId, () => {
+            'key': <String, Object?>{
+              'kind': 'ledger',
+              'id': ledgerId,
+              'name': data['ledger_name'] ?? '账本#$ledgerId',
+            },
+            'totals': <String, Object?>{},
+          });
+      (group['totals'] as Map).cast<String, Object?>()[data['type'] as String] = {
+        'amount': (data['total_amount'] as num).toDouble(),
+        'count': (data['transaction_count'] as num).toInt(),
+      };
+    }
+    return byLedger.values.take(groupLimit).toList();
   }
 
   Future<List<Map<String, Object?>>> _timeGroups(

@@ -158,6 +158,73 @@ void main() {
           reason: '多本币种不同，不能拿其中任意一本冒充');
     });
 
+    test('跨账本统计即使不分组也附带 byLedger 拆分', () async {
+      // 模型不总会在多本查询时选 groupBy=ledger，真模型实测过它会把合并总数同时
+      // 报给每一本。所以拆分数字由服务端无条件给出。
+      final a = await makeLedger('日常');
+      final b = await makeLedger('生意');
+      await addTx(a, type: 'expense', amount: 30, note: '午饭');
+      await addTx(b, type: 'expense', amount: 500, note: '进货');
+
+      final result = await summarize([a, b], types: const {'expense'});
+      expect((result['totals'] as Map)['expense'],
+          {'amount': 530.0, 'count': 2});
+
+      final byLedger = (result['byLedger'] as List).cast<Map<String, Object?>>();
+      expect(byLedger, hasLength(2));
+      final byName = {
+        for (final group in byLedger)
+          (group['key'] as Map)['name'] as String:
+              ((group['totals'] as Map)['expense'] as Map)['amount'],
+      };
+      expect(byName['日常'], 30.0);
+      expect(byName['生意'], 500.0);
+    });
+
+    test('单账本统计不附带 byLedger', () async {
+      final a = await makeLedger('日常');
+      await addTx(a, type: 'expense', amount: 30, note: '午饭');
+
+      final result = await summarize([a], types: const {'expense'});
+      expect(result.containsKey('byLedger'), isFalse);
+    });
+
+    test('groupBy=ledger 时按账本拆开，不给合并总数', () async {
+      // 真模型实测过：一次查两本又只拿合并数时，模型会把总数安到其中一本头上、
+      // 另一本报 0。分组必须在数据库里做，不能让模型靠多次调用去猜。
+      final a = await makeLedger('日常');
+      final b = await makeLedger('生意');
+      await addTx(a, type: 'expense', amount: 30, note: '午饭');
+      await addTx(b, type: 'expense', amount: 500, note: '进货');
+
+      final result = await gateway.summarizeTransactions(
+        ledgerIds: [a, b],
+        start: DateTime(2026, 9, 1),
+        end: DateTime(2026, 10, 1),
+        types: const {'expense'},
+        groupBy: 'ledger',
+        categoryLevel: 'leaf',
+        categoryIds: const [],
+        categoryNames: const [],
+        tagIds: const [],
+        tagNames: const [],
+        accountIds: const [],
+        accountNames: const [],
+        includeExcludedFromStats: false,
+        groupLimit: 20,
+      );
+
+      final groups = (result['groups'] as List).cast<Map<String, Object?>>();
+      expect(groups, hasLength(2));
+      final byName = {
+        for (final group in groups)
+          (group['key'] as Map)['name'] as String:
+              ((group['totals'] as Map)['expense'] as Map)['amount'],
+      };
+      expect(byName['日常'], 30.0);
+      expect(byName['生意'], 500.0);
+    });
+
     test('预算跨账本时逐本返回并标注归属', () async {
       final a = await makeLedger('日常');
       final b = await makeLedger('生意');

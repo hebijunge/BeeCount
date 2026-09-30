@@ -61,7 +61,9 @@ class _LedgerTableHeader extends ConsumerWidget {
     final style = Theme.of(context)
         .textTheme
         .labelSmall
-        ?.copyWith(color: BeeTokens.textTertiary(context));
+        // 这块在黄色头部背景上，textTertiary 淡得几乎看不见，跟顶部「总笔数 /
+        // 账本结余」那两格取同一档。
+        ?.copyWith(color: BeeTokens.textSecondary(context));
     return Padding(
       padding: EdgeInsets.only(bottom: 8.0.scaled(context, ref)),
       child: Row(

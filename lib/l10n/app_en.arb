@@ -420,6 +420,17 @@
   "importFieldNote": "Note",
   "importPreview": "Data Preview",
   "importPreviewLimit": "Showing first {shown} of {total} records",
+  "importLedgerPlanTitle": "Ledger destinations",
+  "importLedgerPlanSummary": "{ledgers} ledgers involved, {newCount} to be created",
+  "@importLedgerPlanSummary": {
+    "placeholders": {
+      "ledgers": {"type": "int"},
+      "newCount": {"type": "int"}
+    }
+  },
+  "importLedgerPlanMerge": "Merges into existing",
+  "importLedgerPlanNew": "New ledger",
+  "importLedgerPlanCurrent": "Goes to current ledger",
   "importCategoryNotSelected": "Category not selected",
   "importCategoryMappingDescription": "Please select corresponding local categories for each category name:",
   "importKeepOriginalName": "Keep original name",

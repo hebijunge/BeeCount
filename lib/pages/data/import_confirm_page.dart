@@ -16,6 +16,7 @@ import '../../services/data_import_service.dart';
 import '../../utils/date_parser.dart';
 import '../../styles/tokens.dart';
 import 'import_page.dart';
+import 'import_ledger_plan_view.dart';
 
 class ImportConfirmPage extends ConsumerStatefulWidget {
   final String csvText;
@@ -59,6 +60,10 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
   List<String> distinctCategories = [];
   Map<String, int?> categoryMapping = {}; // 源分类名 -> 目标分类ID（null表示保持原名）
   Future<List<schema.Category>>? allCategoriesFuture;
+  /// 已有账本清单，用来在导入前预告「这组并进哪本、哪本要新建」。只取一次：这一屏会
+  /// 跟着 setState 反复重建，而用户不会在这半分钟里改账本名。
+  List<schema.Ledger> _allLedgers = const [];
+  String _currentLedgerName = '';
   late final BillParser _billParser;
 
   @override
@@ -84,6 +89,16 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
       _autoDetectMapping();
       // 预取分类列表供第二步选择
       allCategoriesFuture = _loadAllCategories(ref);
+      // 账本清单取一次，供「账本归属」预览判断哪些会并进已有账本。
+      final repo = ref.read(repositoryProvider);
+      final currentId = ref.read(currentLedgerIdProvider);
+      final ledgers = await repo.getAllLedgers();
+      if (!mounted) return;
+      setState(() {
+        _allLedgers = ledgers;
+        final current = ledgers.where((ledger) => ledger.id == currentId);
+        _currentLedgerName = current.isEmpty ? '' : current.first.name;
+      });
     }();
   }
 
@@ -97,6 +112,25 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
       case BillSourceType.wechat:
         return WechatBillParser();
     }
+  }
+
+  /// 按「账本」列把数据行分组数一遍。只数行、不解析交易：这一屏跟着 setState 反复
+  /// 重建，把整份账单再解析一遍的话，几千行的文件会直接卡住。
+  List<ImportLedgerGroup> _ledgerGroups() {
+    final column = mapping['ledger'];
+    if (column == null) return const [];
+    final counts = <String?, int>{};
+    for (var i = widget.hasHeader ? headerRow + 1 : 0; i < rows.length; i++) {
+      final row = rows[i];
+      if (column >= row.length) continue;
+      final raw = row[column].trim();
+      final name = raw.isEmpty ? null : raw;
+      counts[name] = (counts[name] ?? 0) + 1;
+    }
+    return [
+      for (final entry in counts.entries)
+        (ledgerName: entry.key, count: entry.value),
+    ];
   }
 
   void _autoDetectMapping() {
@@ -194,6 +228,12 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  // 先说清每组的去向（并进已有 / 新建 / 记入当前），再给原始行预览。
+                  ImportLedgerPlanView(
+                    groups: _ledgerGroups(),
+                    ledgers: _allLedgers,
+                    currentLedgerName: _currentLedgerName,
+                  ),
                   // 预览仅展示前 N 行，避免大文件一次性渲染导致卡顿
                   Text(AppLocalizations.of(context)!.importPreview,
                       style: Theme.of(context).textTheme.labelLarge),

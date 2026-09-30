@@ -1380,6 +1380,17 @@
   "importPreparing": "準備中…",
   "importPreview": "資料預覽",
   "importPreviewLimit": "僅預覽前 {shown} 行，共 {total} 行",
+  "importLedgerPlanTitle": "帳本歸屬",
+  "importLedgerPlanSummary": "共 {ledgers} 個帳本，其中 {newCount} 個要新建",
+  "@importLedgerPlanSummary": {
+    "placeholders": {
+      "ledgers": {"type": "int"},
+      "newCount": {"type": "int"}
+    }
+  },
+  "importLedgerPlanMerge": "併入既有帳本",
+  "importLedgerPlanNew": "新建帳本",
+  "importLedgerPlanCurrent": "記入目前帳本",
   "importPreviousStep": "上一步",
   "importProgress": "匯入中… 成功 {ok}，失敗 {fail}",
   "importProgressDetail": "已完成：{done}/{total}，成功 {ok}，失敗 {fail}",

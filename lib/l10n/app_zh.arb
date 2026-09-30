@@ -1001,6 +1001,17 @@
   "importFieldNote": "备注",
   "importPreview": "预览：",
   "importPreviewLimit": "仅预览前 {shown} 行，共 {total} 行",
+  "importLedgerPlanTitle": "账本归属",
+  "importLedgerPlanSummary": "共 {ledgers} 个账本，其中 {newCount} 个要新建",
+  "@importLedgerPlanSummary": {
+    "placeholders": {
+      "ledgers": {"type": "int"},
+      "newCount": {"type": "int"}
+    }
+  },
+  "importLedgerPlanMerge": "并入已有账本",
+  "importLedgerPlanNew": "新建账本",
+  "importLedgerPlanCurrent": "记入当前账本",
   "importCategoryNotSelected": "未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。",
   "importCategoryMappingDescription": "请将左侧\"源分类名\"映射到系统内已有分类（或保持原名自动创建/合并）",
   "importKeepOriginalName": "保持原名（自动创建/合并）",

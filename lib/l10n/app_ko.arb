@@ -265,6 +265,17 @@
   "importFieldNote": "메모",
   "importPreview": "데이터 미리보기",
   "importPreviewLimit": "전체 {total}건 중 처음 {shown}건을 표시합니다",
+  "importLedgerPlanTitle": "가계부 배정",
+  "importLedgerPlanSummary": "총 {ledgers}개 가계부, 그중 {newCount}개 새로 만듦",
+  "@importLedgerPlanSummary": {
+    "placeholders": {
+      "ledgers": {"type": "int"},
+      "newCount": {"type": "int"}
+    }
+  },
+  "importLedgerPlanMerge": "기존 가계부에 병합",
+  "importLedgerPlanNew": "새 가계부",
+  "importLedgerPlanCurrent": "현재 가계부에 기록",
   "importCategoryNotSelected": "카테고리가 선택되지 않았습니다",
   "importCategoryMappingDescription": "각 카테고리 이름에 해당하는 로컬 카테고리를 선택하세요:",
   "importKeepOriginalName": "원래 이름 유지",

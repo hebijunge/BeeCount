@@ -888,6 +888,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importLedgerPlanTitle => 'Ledger destinations';
+
+  @override
+  String importLedgerPlanSummary(int ledgers, int newCount) {
+    return '$ledgers ledgers involved, $newCount to be created';
+  }
+
+  @override
+  String get importLedgerPlanMerge => 'Merges into existing';
+
+  @override
+  String get importLedgerPlanNew => 'New ledger';
+
+  @override
+  String get importLedgerPlanCurrent => 'Goes to current ledger';
+
+  @override
   String get importCategoryNotSelected => 'Category not selected';
 
   @override

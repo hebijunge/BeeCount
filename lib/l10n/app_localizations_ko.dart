@@ -888,6 +888,23 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get importLedgerPlanTitle => '가계부 배정';
+
+  @override
+  String importLedgerPlanSummary(int ledgers, int newCount) {
+    return '총 $ledgers개 가계부, 그중 $newCount개 새로 만듦';
+  }
+
+  @override
+  String get importLedgerPlanMerge => '기존 가계부에 병합';
+
+  @override
+  String get importLedgerPlanNew => '새 가계부';
+
+  @override
+  String get importLedgerPlanCurrent => '현재 가계부에 기록';
+
+  @override
   String get importCategoryNotSelected => '카테고리가 선택되지 않았습니다';
 
   @override

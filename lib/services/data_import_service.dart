@@ -184,14 +184,22 @@ class DataImportService {
     if (wanted.isEmpty) {
       throw ArgumentError('账本名不能为空');
     }
+    final existing = findLedgerIn(await repo.getAllLedgers(), wanted);
+    return existing ?? await repo.createLedger(name: wanted, currency: currency);
+  }
+
+  /// 账本名匹配规则本体，纯函数，供 [ensureLedgerByName] 和导入前的归属预览共用。
+  static int? findLedgerIn(List<Ledger> ledgers, String name) {
+    final wanted = name.trim();
+    if (wanted.isEmpty) return null;
     final lower = wanted.toLowerCase();
-    for (final ledger in await repo.getAllLedgers()) {
+    for (final ledger in ledgers) {
       final original = ledger.name.trim().toLowerCase();
       final sheetForm =
           safeSheetName(ledger.name, ledger.id).trim().toLowerCase();
       if (original == lower || sheetForm == lower) return ledger.id;
     }
-    return await repo.createLedger(name: wanted, currency: currency);
+    return null;
   }
 
   /// 导入数据到指定账本

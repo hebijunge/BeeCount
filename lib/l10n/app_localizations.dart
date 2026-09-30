@@ -1712,6 +1712,36 @@ abstract class AppLocalizations {
   /// **'Showing first {shown} of {total} records'**
   String importPreviewLimit(Object shown, Object total);
 
+  /// No description provided for @importLedgerPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger destinations'**
+  String get importLedgerPlanTitle;
+
+  /// No description provided for @importLedgerPlanSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{ledgers} ledgers involved, {newCount} to be created'**
+  String importLedgerPlanSummary(int ledgers, int newCount);
+
+  /// No description provided for @importLedgerPlanMerge.
+  ///
+  /// In en, this message translates to:
+  /// **'Merges into existing'**
+  String get importLedgerPlanMerge;
+
+  /// No description provided for @importLedgerPlanNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New ledger'**
+  String get importLedgerPlanNew;
+
+  /// No description provided for @importLedgerPlanCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Goes to current ledger'**
+  String get importLedgerPlanCurrent;
+
   /// No description provided for @importCategoryNotSelected.
   ///
   /// In en, this message translates to:

@@ -888,6 +888,23 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get importLedgerPlanTitle => '账本归属';
+
+  @override
+  String importLedgerPlanSummary(int ledgers, int newCount) {
+    return '共 $ledgers 个账本，其中 $newCount 个要新建';
+  }
+
+  @override
+  String get importLedgerPlanMerge => '并入已有账本';
+
+  @override
+  String get importLedgerPlanNew => '新建账本';
+
+  @override
+  String get importLedgerPlanCurrent => '记入当前账本';
+
+  @override
   String get importCategoryNotSelected => '未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。';
 
   @override
@@ -8866,6 +8883,23 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String importPreviewLimit(Object shown, Object total) {
     return '僅預覽前 $shown 行，共 $total 行';
   }
+
+  @override
+  String get importLedgerPlanTitle => '帳本歸屬';
+
+  @override
+  String importLedgerPlanSummary(int ledgers, int newCount) {
+    return '共 $ledgers 個帳本，其中 $newCount 個要新建';
+  }
+
+  @override
+  String get importLedgerPlanMerge => '併入既有帳本';
+
+  @override
+  String get importLedgerPlanNew => '新建帳本';
+
+  @override
+  String get importLedgerPlanCurrent => '記入目前帳本';
 
   @override
   String get importCategoryNotSelected => '未選擇\"分類\"列，請點擊\"上一步\"返回並設定\"分類\"的列，再繼續。';

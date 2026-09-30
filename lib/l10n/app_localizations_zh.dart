@@ -5586,6 +5586,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentAuthorizationAllLedgers => '账本：所有可访问账本';
 
   @override
+  String agentAuthorizationTargetLedger(String name) {
+    return '账本：$name（本次指定）';
+  }
+
+  @override
   String get agentAuthorizationParameters => '本次会使用的信息';
 
   @override

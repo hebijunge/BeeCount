@@ -10652,6 +10652,12 @@ abstract class AppLocalizations {
   /// **'Ledger: all accessible ledgers'**
   String get agentAuthorizationAllLedgers;
 
+  /// No description provided for @agentAuthorizationTargetLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger: {name} (chosen for this entry)'**
+  String agentAuthorizationTargetLedger(String name);
+
   /// No description provided for @agentAuthorizationParameters.
   ///
   /// In en, this message translates to:

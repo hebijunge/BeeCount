@@ -2334,6 +2334,10 @@
     "placeholders": {"ledgerId": {"type": "int"}}
   },
   "agentAuthorizationAllLedgers": "账本：所有可访问账本",
+  "agentAuthorizationTargetLedger": "账本：{name}（本次指定）",
+  "@agentAuthorizationTargetLedger": {
+    "placeholders": {"name": {"type": "String"}}
+  },
   "agentAuthorizationParameters": "本次会使用的信息",
   "agentAuthorizationNoParameters": "没有需要展示的参数。",
   "agentAuthorizationSourceText": "原始记账文本",

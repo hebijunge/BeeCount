@@ -2404,6 +2404,10 @@
     "placeholders": {"ledgerId": {"type": "int"}}
   },
   "agentAuthorizationAllLedgers": "Ledger: all accessible ledgers",
+  "agentAuthorizationTargetLedger": "Ledger: {name} (chosen for this entry)",
+  "@agentAuthorizationTargetLedger": {
+    "placeholders": {"name": {"type": "String"}}
+  },
   "agentAuthorizationParameters": "Information used this time",
   "agentAuthorizationNoParameters": "No parameters need to be shown.",
   "agentAuthorizationSourceText": "Original transaction text",

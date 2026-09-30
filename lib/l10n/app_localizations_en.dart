@@ -5592,6 +5592,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentAuthorizationAllLedgers => 'Ledger: all accessible ledgers';
 
   @override
+  String agentAuthorizationTargetLedger(String name) {
+    return 'Ledger: $name (chosen for this entry)';
+  }
+
+  @override
   String get agentAuthorizationParameters => 'Information used this time';
 
   @override

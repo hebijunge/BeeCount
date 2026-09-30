@@ -6,6 +6,9 @@
 // 模型自己会不会去用这个能力。断言点是它发出的工具调用里带了哪几本 —— 问「把生意和
 // 旅行分别列出来」时，它应该从上下文账本清单里挑出这两本的 id。
 //
+// 写账那一条同理：离线用例只能证明「传了国宇就写国宇」，证明不了模型会不会把用户嘴里
+// 的「国宇」填进 ledgerName。所以那条既看工具参数，也直接查库确认钱落对了本子。
+//
 // key 只从环境变量读，不落盘、不进提交。
 
 import 'dart:io';
@@ -54,26 +57,7 @@ void main() {
     await _expense(repo, travel, 1200, '机票');
 
     final config = AIServiceProviderConfig.zhipuDefault;
-    // 必须用 update 而不是 add：getProviders() 首次会先落一条空 key 的内置智谱，
-    // add 会变成同 id 两条，getProvider 的 firstWhere 命中那条空的，于是报
-    // 「未配置可用的文本对话服务商」。
-    await AIProviderManager.updateProvider(
-      AIServiceProviderConfig(
-        id: config.id,
-        name: config.name,
-        isBuiltIn: config.isBuiltIn,
-        apiKey: apiKey,
-        baseUrl: config.baseUrl,
-        textModel: config.textModel,
-        visionModel: config.visionModel,
-        audioModel: config.audioModel,
-        createdAt: config.createdAt,
-      ),
-    );
-    await AIProviderManager.setCapabilityProvider(
-      AICapabilityType.text,
-      config.id,
-    );
+    await _useZhipuTextModel(apiKey, config);
 
     final gateway = BeeCountLocalAgentToolGateway(
       repository: repo,
@@ -122,6 +106,96 @@ void main() {
     expect(response.text, isNot(contains('0元，旅行账本在九月的支出总额为1700')),
         reason: '又退化成把合并总数安到一本头上');
   }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('模型点名账本时，这笔记进被点名的那本而不是当前账本', () async {
+    if (apiKey.isEmpty) {
+      markTestSkipped('未提供 ZHIPU_API_KEY，跳过真模型验证');
+      return;
+    }
+
+    final db = BeeDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = LocalRepository(db);
+
+    // 当前账本故意停在华恒远：只要这笔没走 ledgerName 解析，就会落在这里被测试抓到。
+    final huaheng = await repo.createLedger(name: '华恒远');
+    final guoyu = await repo.createLedger(name: '国宇');
+
+    await _useZhipuTextModel(apiKey, AIServiceProviderConfig.zhipuDefault);
+
+    final gateway = BeeCountLocalAgentToolGateway(
+      repository: repo,
+      database: db,
+      baseCurrency: () => 'CNY',
+      bookkeeper: AiBookkeeper(
+        repository: repo,
+        engine: const DefaultAiExtractionEngine(),
+        persister: BillCreationService(repo),
+      ),
+      memoryRepository: LocalAgentMemoryRepository(db),
+    );
+    final recorder = _RecordingGateway(gateway);
+    final facade = AgentAppFacade(
+      memoryRepository: LocalAgentMemoryRepository(db),
+      toolGateway: recorder,
+      permissionStore: _AllowAllPermissions(),
+      runIdFactory: () => 'live-record-into-named-ledger',
+    );
+
+    final response = await facade.processMessage(
+      message: '给国宇买白结构胶一箱150',
+      ledgerId: huaheng,
+    );
+
+    // ignore: avoid_print
+    print('模型回答: ${response.text}');
+    // ignore: avoid_print
+    print('记账工具收到的账本: ${recorder.recordRequests}');
+
+    expect(response.type, isNot('error'), reason: response.text);
+    expect(recorder.recordRequests, hasLength(1), reason: '模型没调用记账工具');
+    expect(recorder.recordRequests.single.ledgerId, guoyu,
+        reason: '这笔没被解析到国宇，说明 ledgerName 那条链路没走通');
+
+    // 工具参数传对还不算完：钱得真落进那本账，且金额、类型、备注对得上。
+    final inGuoyu = await repo
+        .getRecentTransactionsWithCategory(ledgerId: guoyu, limit: 10);
+    final inHuaheng = await repo
+        .getRecentTransactionsWithCategory(ledgerId: huaheng, limit: 10);
+
+    expect(inGuoyu, hasLength(1));
+    expect(inHuaheng, isEmpty, reason: '这笔漏进了当前账本，等于记错账');
+    expect(inGuoyu.single.t.amount, 150);
+    expect(inGuoyu.single.t.type, 'expense');
+    expect(inGuoyu.single.t.note, contains('结构胶'),
+        reason: '备注没留下买的东西，这笔账在国宇那本里说不清');
+  }, timeout: const Timeout(Duration(minutes: 3)));
+}
+
+/// 真模型用例的公共前置。必须用 update 而不是 add：getProviders() 首次会先落一条空
+/// key 的内置智谱，add 会变成同 id 两条，getProvider 的 firstWhere 命中那条空的，
+/// 于是报「未配置可用的文本对话服务商」。
+Future<void> _useZhipuTextModel(
+  String apiKey,
+  AIServiceProviderConfig config,
+) async {
+  await AIProviderManager.updateProvider(
+    AIServiceProviderConfig(
+      id: config.id,
+      name: config.name,
+      isBuiltIn: config.isBuiltIn,
+      apiKey: apiKey,
+      baseUrl: config.baseUrl,
+      textModel: config.textModel,
+      visionModel: config.visionModel,
+      audioModel: config.audioModel,
+      createdAt: config.createdAt,
+    ),
+  );
+  await AIProviderManager.setCapabilityProvider(
+    AICapabilityType.text,
+    config.id,
+  );
 }
 
 Future<void> _expense(
@@ -155,6 +229,7 @@ final class _RecordingGateway implements LocalAgentToolGateway {
   final LocalAgentToolGateway _inner;
   final List<List<int>> summaryLedgerIds = [];
   final List<List<int>> queryLedgerIds = [];
+  final List<({int ledgerId, String text})> recordRequests = [];
 
   @override
   Future<List<AgentTransactionSummary>> queryTransactions({
@@ -231,8 +306,10 @@ final class _RecordingGateway implements LocalAgentToolGateway {
   Future<AgentRecordToolResult> recordTransaction({
     required int ledgerId,
     required String text,
-  }) =>
-      _inner.recordTransaction(ledgerId: ledgerId, text: text);
+  }) {
+    recordRequests.add((ledgerId: ledgerId, text: text));
+    return _inner.recordTransaction(ledgerId: ledgerId, text: text);
+  }
 
   @override
   Future<int> saveExplicitMemory({

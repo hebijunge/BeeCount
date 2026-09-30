@@ -851,10 +851,45 @@ final class LocalAgentTools {
     if (text is! String || text.isEmpty || scope.ledgerId == null) {
       return const {'success': false};
     }
+    final target = await _recordTargetLedger(call);
+    if (target.error != null) {
+      return {'success': false, 'error': target.error};
+    }
     final result =
-        await gateway.recordTransaction(ledgerId: _ledgerId, text: text);
+        await gateway.recordTransaction(ledgerId: target.id!, text: text);
     if (call.id.isNotEmpty) _recordResults[call.id] = result;
     return result.toToolData();
+  }
+
+  /// 这笔账记进哪一本：模型只给账本**名称**，这里对着真实清单解析成 id。
+  ///
+  /// 不收 id 是因为名称才是用户嘴上说的东西；让模型自己挑 id，等于让它决定钱进哪本账。
+  /// 解析不出来一律拒绝，绝不悄悄退回当前账本 —— 那样记错了账面上一切正常，只能事后
+  /// 翻出来改。账本名在本机不唯一（建账本没做重名校验），所以重名也必须停下来问用户。
+  Future<({int? id, String? error})> _recordTargetLedger(
+      AgentToolCall call) async {
+    final raw = call.arguments['ledgerName'];
+    if (raw is! String || raw.trim().isEmpty) {
+      return (id: _ledgerId, error: null);
+    }
+    final wanted = raw.trim();
+    final catalog = await gateway.getLedgerCatalog();
+    final matched =
+        catalog.where((ledger) => ledger.name.trim() == wanted).toList();
+    if (matched.length == 1) return (id: matched.single.id, error: null);
+    if (matched.isEmpty) {
+      final names = catalog.map((ledger) => ledger.name).join('、');
+      return (
+        id: null,
+        error: '本机没有名为「$wanted」的账本，可选账本：$names。'
+            '请不要改记到别的账本，先向用户确认。',
+      );
+    }
+    return (
+      id: null,
+      error: '有 ${matched.length} 个账本都叫「$wanted」，无法确定记进哪一本，'
+          '请先向用户确认。',
+    );
   }
 
   Future<Map<String, Object?>> _saveMemory(AgentToolCall call) async {

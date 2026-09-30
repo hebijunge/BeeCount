@@ -54,11 +54,7 @@ final class _AgentToolAuthorizationDialog extends StatelessWidget {
             const SizedBox(height: 6),
             Text(AgentToolPresentation.description(l10n, request.toolName)),
             const SizedBox(height: 12),
-            Text(
-              request.ledgerId == null
-                  ? l10n.agentAuthorizationAllLedgers
-                  : l10n.agentAuthorizationCurrentLedger(request.ledgerId!),
-            ),
+            Text(_ledgerLine(l10n)),
             const SizedBox(height: 12),
             Text(
               l10n.agentAuthorizationParameters,
@@ -98,5 +94,19 @@ final class _AgentToolAuthorizationDialog extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// 记账点名了目标账本就必须按那本显示：钱要记进「国宇」而同意框上写着「当前账本」，
+  /// 等于在用户点头的那一行骗他。
+  String _ledgerLine(AppLocalizations l10n) {
+    final target = request.toolName == 'record_transaction_from_text'
+        ? request.arguments['ledgerName']
+        : null;
+    if (target is String && target.trim().isNotEmpty) {
+      return l10n.agentAuthorizationTargetLedger(target.trim());
+    }
+    return request.ledgerId == null
+        ? l10n.agentAuthorizationAllLedgers
+        : l10n.agentAuthorizationCurrentLedger(request.ledgerId!);
   }
 }

@@ -32,6 +32,76 @@ void main() {
     });
   });
 
+  group('记账指定账本', () {
+    // 用户的真实场景：两本账（华恒远 / 国宇），一句「给国宇买白结构胶一箱150」
+    // 必须落进国宇那本，而不是当前正在看的那本。
+    void twoLedgers() => gateway.ledgerCatalog = const [
+          AgentLedgerSummary(id: 1, name: '华恒远', currency: 'CNY'),
+          AgentLedgerSummary(id: 2, name: '国宇', currency: 'CNY'),
+        ];
+
+    Future<Map<String, Object?>> record({Object? ledgerName}) =>
+        tools['record_transaction_from_text']!.execute(
+          AgentToolCall(
+            name: 'record_transaction_from_text',
+            arguments: {
+              'sourceText': '给国宇买白结构胶一箱150',
+              if (ledgerName != null) 'ledgerName': ledgerName,
+            },
+          ),
+        );
+
+    test('点名「国宇」时记进国宇，不是当前账本', () async {
+      twoLedgers();
+
+      final result = await record(ledgerName: '国宇');
+
+      expect(gateway.recordRequests, [(ledgerId: 2, text: '给国宇买白结构胶一箱150')]);
+      expect(result['success'], isTrue);
+    });
+
+    test('名称两侧的空格不影响匹配', () async {
+      twoLedgers();
+
+      await record(ledgerName: '  国宇  ');
+
+      expect(gateway.recordRequests.single.ledgerId, 2);
+    });
+
+    test('没点名账本时仍记当前账本，行为与改动前一致', () async {
+      twoLedgers();
+
+      await record();
+
+      expect(gateway.recordRequests, [(ledgerId: 1, text: '给国宇买白结构胶一箱150')]);
+    });
+
+    test('账本不存在时拒绝记账，绝不退回当前账本', () async {
+      twoLedgers();
+
+      final result = await record(ledgerName: '国宇二号');
+
+      expect(gateway.recordRequests, isEmpty, reason: '拒绝就不能落库');
+      expect(result['success'], isFalse);
+      expect(result['error'], contains('国宇二号'));
+      // 把可选清单回给模型，它才有机会一次问对，而不是继续猜。
+      expect(result['error'], allOf(contains('华恒远'), contains('国宇')));
+    });
+
+    test('同名多本时拒绝，让用户点名区分', () async {
+      gateway.ledgerCatalog = const [
+        AgentLedgerSummary(id: 1, name: '国宇', currency: 'CNY'),
+        AgentLedgerSummary(id: 2, name: '国宇', currency: 'CNY'),
+      ];
+
+      final result = await record(ledgerName: '国宇');
+
+      expect(gateway.recordRequests, isEmpty);
+      expect(result['success'], isFalse);
+      expect(result['error'], contains('2 个账本'));
+    });
+  });
+
   test('query tool clips local results to twenty rows and keeps scope ledger',
       () async {
     gateway.transactions = [
@@ -387,6 +457,7 @@ void main() {
 
 final class _FakeGateway implements LocalAgentToolGateway {
   final List<String> recordedTexts = [];
+  final List<({int ledgerId, String text})> recordRequests = [];
   final List<int> requestedLedgerIds = [];
   final List<({int ledgerId, int memoryId})> forgetMemoryRequests = [];
   final List<
@@ -529,6 +600,7 @@ final class _FakeGateway implements LocalAgentToolGateway {
     required int ledgerId,
     required String text,
   }) async {
+    recordRequests.add((ledgerId: ledgerId, text: text));
     recordedTexts.add(text);
     return const AgentRecordToolResult(success: true, transactionIds: [42]);
   }

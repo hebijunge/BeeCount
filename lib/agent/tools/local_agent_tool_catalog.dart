@@ -167,7 +167,7 @@ final class LocalAgentToolCatalog {
     core.AgentNativeToolDefinition(
       name: 'record_transaction_from_text',
       description:
-          '将当前用户明确提供的原始交易文本记录到当前账本，会创建本地交易数据，属于写操作，需要通过权限策略。sourceText 必须逐字等于当前用户消息；同一条消息只允许成功记账一次。成功结果返回最终落库的交易 ID、完整交易明细、关联分类、账户、标签和未转换币种；不要把保存前的推测当成结果。',
+          '将当前用户明确提供的原始交易文本记录到本地账本，会创建交易数据，属于写操作，需要通过权限策略。sourceText 必须逐字等于当前用户消息；同一条消息只允许成功记账一次。用户点名要记进某个账本时，ledgerName 逐字填上下文账本清单里的名称；没点名就不要传，默认记进当前账本。名称不存在或与多个账本重名时会整笔拒绝，此时向用户确认账本，不得改用别的账本或退回当前账本重试。成功结果返回最终落库的交易 ID、ledgerId、完整交易明细、关联分类、账户、标签和未转换币种；不要把保存前的推测当成结果。',
       parameters: {
         'type': 'object',
         'properties': {
@@ -175,6 +175,11 @@ final class LocalAgentToolCatalog {
             'type': 'string',
             'description': '原始交易文本，必须逐字等于用户当前消息。',
             'minLength': 1,
+          },
+          'ledgerName': {
+            'type': 'string',
+            'description':
+                '目标账本名称，逐字取自上下文账本清单；用户没有点名账本时省略，表示当前账本。',
           },
         },
         'required': ['sourceText'],

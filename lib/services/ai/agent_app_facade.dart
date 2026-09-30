@@ -630,6 +630,9 @@ final class AgentAppFacade {
       if (call.name != 'record_transaction_from_text') continue;
       final recorded = tools.recordResultFor(call);
       if (recorded == null || !recorded.success) {
+        // 记账失败不一定是「信息不全」：账本名不存在、同名多本也会被工具拒绝，原因已经
+        // 写在工具结果里给模型看过。它那句解释比固定文案准，优先用它的。
+        if (result.text.trim().isNotEmpty) return AIResponse.text(result.text);
         return AIResponse.text(
           l10n?.agentRecordIncomplete ?? '未识别到完整的记账信息，请补充金额和用途后重试。',
         );

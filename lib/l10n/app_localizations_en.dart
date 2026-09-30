@@ -748,6 +748,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryGenerateDefaultHint => 'Existing categories are kept. Default categories with matching names are skipped.';
 
   @override
+  String get categoryPresetPackLabel => 'Preset pack';
+
+  @override
+  String get categoryPresetConsumer => 'Everyday spending';
+
+  @override
+  String get categoryPresetProject => 'Project & repair';
+
+  @override
+  String get categoryPresetProjectMaterial => 'Materials';
+
+  @override
+  String get categoryPresetProjectHardware => 'Hardware';
+
+  @override
+  String get categoryPresetProjectTool => 'Tools';
+
+  @override
+  String get categoryPresetProjectPart => 'Parts';
+
+  @override
+  String get categoryPresetProjectLabor => 'Labor';
+
+  @override
+  String get categoryPresetProjectFreight => 'Freight';
+
+  @override
+  String get categoryPresetProjectUtility => 'Utilities';
+
+  @override
+  String get categoryPresetProjectSafety => 'Safety';
+
+  @override
+  String get categoryPresetProjectRepairFee => 'Repair fee';
+
+  @override
+  String get categoryPresetProjectProjectFee => 'Project payment';
+
+  @override
+  String get categoryPresetProjectMaterialFee => 'Materials cost';
+
+  @override
   String categoryGenerateDefaultSuccess(int count) {
     return 'Generated $count default categories';
   }

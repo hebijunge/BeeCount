@@ -748,6 +748,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get categoryGenerateDefaultHint => '기존 카테고리는 유지하고 이름이 같은 기본 카테고리는 건너뜁니다.';
 
   @override
+  String get categoryPresetPackLabel => '기본 세트';
+
+  @override
+  String get categoryPresetConsumer => '일상 지출';
+
+  @override
+  String get categoryPresetProject => '공사·수리';
+
+  @override
+  String get categoryPresetProjectMaterial => '자재';
+
+  @override
+  String get categoryPresetProjectHardware => '철물';
+
+  @override
+  String get categoryPresetProjectTool => '공구';
+
+  @override
+  String get categoryPresetProjectPart => '부품';
+
+  @override
+  String get categoryPresetProjectLabor => '인건비';
+
+  @override
+  String get categoryPresetProjectFreight => '운반';
+
+  @override
+  String get categoryPresetProjectUtility => '수도·전기';
+
+  @override
+  String get categoryPresetProjectSafety => '안전';
+
+  @override
+  String get categoryPresetProjectRepairFee => '수리비';
+
+  @override
+  String get categoryPresetProjectProjectFee => '공사대금';
+
+  @override
+  String get categoryPresetProjectMaterialFee => '자재비';
+
+  @override
   String categoryGenerateDefaultSuccess(int count) {
     return '기본 카테고리 $count개를 생성했습니다';
   }

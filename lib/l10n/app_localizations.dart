@@ -1448,6 +1448,90 @@ abstract class AppLocalizations {
   /// **'Existing categories are kept. Default categories with matching names are skipped.'**
   String get categoryGenerateDefaultHint;
 
+  /// No description provided for @categoryPresetPackLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset pack'**
+  String get categoryPresetPackLabel;
+
+  /// No description provided for @categoryPresetConsumer.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyday spending'**
+  String get categoryPresetConsumer;
+
+  /// No description provided for @categoryPresetProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Project & repair'**
+  String get categoryPresetProject;
+
+  /// No description provided for @categoryPresetProjectMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials'**
+  String get categoryPresetProjectMaterial;
+
+  /// No description provided for @categoryPresetProjectHardware.
+  ///
+  /// In en, this message translates to:
+  /// **'Hardware'**
+  String get categoryPresetProjectHardware;
+
+  /// No description provided for @categoryPresetProjectTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get categoryPresetProjectTool;
+
+  /// No description provided for @categoryPresetProjectPart.
+  ///
+  /// In en, this message translates to:
+  /// **'Parts'**
+  String get categoryPresetProjectPart;
+
+  /// No description provided for @categoryPresetProjectLabor.
+  ///
+  /// In en, this message translates to:
+  /// **'Labor'**
+  String get categoryPresetProjectLabor;
+
+  /// No description provided for @categoryPresetProjectFreight.
+  ///
+  /// In en, this message translates to:
+  /// **'Freight'**
+  String get categoryPresetProjectFreight;
+
+  /// No description provided for @categoryPresetProjectUtility.
+  ///
+  /// In en, this message translates to:
+  /// **'Utilities'**
+  String get categoryPresetProjectUtility;
+
+  /// No description provided for @categoryPresetProjectSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get categoryPresetProjectSafety;
+
+  /// No description provided for @categoryPresetProjectRepairFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair fee'**
+  String get categoryPresetProjectRepairFee;
+
+  /// No description provided for @categoryPresetProjectProjectFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Project payment'**
+  String get categoryPresetProjectProjectFee;
+
+  /// No description provided for @categoryPresetProjectMaterialFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials cost'**
+  String get categoryPresetProjectMaterialFee;
+
   /// No description provided for @categoryGenerateDefaultSuccess.
   ///
   /// In en, this message translates to:

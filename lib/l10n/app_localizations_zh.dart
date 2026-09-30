@@ -748,6 +748,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryGenerateDefaultHint => '已有分类会保留，同名的默认分类会跳过。';
 
   @override
+  String get categoryPresetPackLabel => '预设包';
+
+  @override
+  String get categoryPresetConsumer => '日常消费';
+
+  @override
+  String get categoryPresetProject => '工程/维修';
+
+  @override
+  String get categoryPresetProjectMaterial => '建材';
+
+  @override
+  String get categoryPresetProjectHardware => '五金';
+
+  @override
+  String get categoryPresetProjectTool => '工具';
+
+  @override
+  String get categoryPresetProjectPart => '配件';
+
+  @override
+  String get categoryPresetProjectLabor => '人工';
+
+  @override
+  String get categoryPresetProjectFreight => '运输';
+
+  @override
+  String get categoryPresetProjectUtility => '水电';
+
+  @override
+  String get categoryPresetProjectSafety => '防护';
+
+  @override
+  String get categoryPresetProjectRepairFee => '维修费';
+
+  @override
+  String get categoryPresetProjectProjectFee => '工程款';
+
+  @override
+  String get categoryPresetProjectMaterialFee => '材料费';
+
+  @override
   String categoryGenerateDefaultSuccess(int count) {
     return '已生成 $count 个默认分类';
   }
@@ -8743,6 +8785,48 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get categoryGenerateDefaultHint => '現有分類會保留，同名的預設分類會略過。';
+
+  @override
+  String get categoryPresetPackLabel => '預設包';
+
+  @override
+  String get categoryPresetConsumer => '日常消費';
+
+  @override
+  String get categoryPresetProject => '工程/維修';
+
+  @override
+  String get categoryPresetProjectMaterial => '建材';
+
+  @override
+  String get categoryPresetProjectHardware => '五金';
+
+  @override
+  String get categoryPresetProjectTool => '工具';
+
+  @override
+  String get categoryPresetProjectPart => '配件';
+
+  @override
+  String get categoryPresetProjectLabor => '人工';
+
+  @override
+  String get categoryPresetProjectFreight => '運輸';
+
+  @override
+  String get categoryPresetProjectUtility => '水電';
+
+  @override
+  String get categoryPresetProjectSafety => '防護';
+
+  @override
+  String get categoryPresetProjectRepairFee => '維修費';
+
+  @override
+  String get categoryPresetProjectProjectFee => '工程款';
+
+  @override
+  String get categoryPresetProjectMaterialFee => '材料費';
 
   @override
   String categoryGenerateDefaultSuccess(int count) {

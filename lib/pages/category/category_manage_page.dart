@@ -179,9 +179,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
     final kind = _tabController.index == 0 ? 'expense' : 'income';
     final kindName =
         kind == 'expense' ? l10n.categoryExpense : l10n.categoryIncome;
-    final useHierarchical = await showDialog<bool>(
+    final choice = await showDialog<({String pack, bool hierarchical})>(
       context: context,
       builder: (dialogContext) {
+        var pack = 'consumer';
         var selectedMode = false;
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
@@ -189,22 +190,45 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                RadioListTile<bool>(
-                  contentPadding: EdgeInsets.zero,
-                  value: false,
-                  groupValue: selectedMode,
-                  title: Text(l10n.categoryGenerateDefaultFlat),
-                  onChanged: (value) =>
-                      setDialogState(() => selectedMode = value!),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(l10n.categoryPresetPackLabel,
+                      style: Theme.of(context).textTheme.labelMedium),
                 ),
-                RadioListTile<bool>(
+                RadioListTile<String>(
                   contentPadding: EdgeInsets.zero,
-                  value: true,
-                  groupValue: selectedMode,
-                  title: Text(l10n.categoryGenerateDefaultHierarchical),
-                  onChanged: (value) =>
-                      setDialogState(() => selectedMode = value!),
+                  value: 'consumer',
+                  groupValue: pack,
+                  title: Text(l10n.categoryPresetConsumer),
+                  onChanged: (value) => setDialogState(() => pack = value!),
                 ),
+                RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  value: 'project',
+                  groupValue: pack,
+                  title: Text(l10n.categoryPresetProject),
+                  onChanged: (value) => setDialogState(() => pack = value!),
+                ),
+                // 工程/维修包只给一级分类：二级怎么拆跟具体工种强相关，预设成别人的
+                // 习惯反而碍事，所以那一级选择只对默认包有意义。
+                if (pack == 'consumer') ...[
+                  RadioListTile<bool>(
+                    contentPadding: EdgeInsets.zero,
+                    value: false,
+                    groupValue: selectedMode,
+                    title: Text(l10n.categoryGenerateDefaultFlat),
+                    onChanged: (value) =>
+                        setDialogState(() => selectedMode = value!),
+                  ),
+                  RadioListTile<bool>(
+                    contentPadding: EdgeInsets.zero,
+                    value: true,
+                    groupValue: selectedMode,
+                    title: Text(l10n.categoryGenerateDefaultHierarchical),
+                    onChanged: (value) =>
+                        setDialogState(() => selectedMode = value!),
+                  ),
+                ],
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -220,7 +244,13 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
                 child: Text(l10n.commonCancel),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, selectedMode),
+                onPressed: () => Navigator.pop(
+                  dialogContext,
+                  (
+                    pack: pack,
+                    hierarchical: pack == 'consumer' && selectedMode,
+                  ),
+                ),
                 child: Text(l10n.commonConfirm),
               ),
             ],
@@ -228,15 +258,21 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
         );
       },
     );
-    if (useHierarchical == null || !mounted) return;
+    if (choice == null || !mounted) return;
 
     try {
-      final createdCount = await SeedService.addDefaultCategories(
-        repository: ref.read(repositoryProvider),
-        l10n: l10n,
-        kind: kind,
-        hierarchical: useHierarchical,
-      );
+      final createdCount = choice.pack == 'project'
+          ? await SeedService.addProjectRepairCategories(
+              repository: ref.read(repositoryProvider),
+              l10n: l10n,
+              kind: kind,
+            )
+          : await SeedService.addDefaultCategories(
+              repository: ref.read(repositoryProvider),
+              l10n: l10n,
+              kind: kind,
+              hierarchical: choice.hierarchical,
+            );
       if (!mounted) return;
       if (createdCount == 0) {
         showToast(context, l10n.categoryGenerateDefaultNoChanges);

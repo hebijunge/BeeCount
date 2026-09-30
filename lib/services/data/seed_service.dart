@@ -652,6 +652,163 @@ class SeedService {
   }
 
   /// 按指定类型和层级补充默认分类，已存在的 seed ID 或名称会被跳过。
+  /// 分类名的作用域是「同一父级 + 同 kind」，所以索引 key 必须带上父级：一级用空父级
+  /// 段，二级用它的 parentId。平铺按 name 建索引会让一级/二级互相遮蔽 —— 结果是种子
+  /// 分类漏建，或把已存在的二级误当成父级分组后整组跳过。
+  static String categoryScopedKey(int? parentId, String name) =>
+      '${parentId ?? ''}|$name';
+
+  /// 「工程/维修」预设包：给以项目采购、上门维修为主的账本用。
+  ///
+  /// 内置那套是消费型的（餐饮/交通/服饰…），「一箱白结构胶」在其中没有落点，只能塞
+  /// 进「其他」，分类统计也就看不出钱花在什么材料上。只出一级分类：二级怎么拆跟具体
+  /// 工种强相关，预设成别人的习惯反而碍事，用户要细分自己加。
+  ///
+  /// 去重沿用 [_categoryIndex] 那份规则（同父级同名跳过、syncId 撞上认已有的），所以
+  /// 反复点、或跟默认包混着点，都不会堆出重复分类。
+  static Future<int> addProjectRepairCategories({
+    required CategoryRepository repository,
+    required AppLocalizations l10n,
+    required String kind,
+  }) async {
+    if (kind != 'expense' && kind != 'income') {
+      throw ArgumentError.value(kind, 'kind', 'Expected expense or income');
+    }
+
+    final presets = kind == 'expense'
+        ? [
+            (
+              key: 'pr_material',
+              name: l10n.categoryPresetProjectMaterial,
+              icon: 'construction'
+            ),
+            (
+              key: 'pr_hardware',
+              name: l10n.categoryPresetProjectHardware,
+              icon: 'handyman'
+            ),
+            (
+              key: 'pr_tool',
+              name: l10n.categoryPresetProjectTool,
+              icon: 'design_services'
+            ),
+            (
+              key: 'pr_part',
+              name: l10n.categoryPresetProjectPart,
+              icon: 'shopping_cart'
+            ),
+            (
+              key: 'pr_labor',
+              name: l10n.categoryPresetProjectLabor,
+              icon: 'engineering'
+            ),
+            (
+              key: 'pr_freight',
+              name: l10n.categoryPresetProjectFreight,
+              icon: 'local_shipping'
+            ),
+            (
+              key: 'pr_utility',
+              name: l10n.categoryPresetProjectUtility,
+              icon: 'flash_on'
+            ),
+            (
+              key: 'pr_safety',
+              name: l10n.categoryPresetProjectSafety,
+              icon: 'health_and_safety'
+            ),
+          ]
+        : [
+            (
+              key: 'pr_repair_fee',
+              name: l10n.categoryPresetProjectRepairFee,
+              icon: 'handyman'
+            ),
+            (
+              key: 'pr_project_fee',
+              name: l10n.categoryPresetProjectProjectFee,
+              icon: 'account_balance'
+            ),
+            (
+              key: 'pr_material_fee',
+              name: l10n.categoryPresetProjectMaterialFee,
+              icon: 'shopping_cart'
+            ),
+          ];
+
+    final index = await _categoryIndex(repository, kind);
+    final bySyncId = index.bySyncId;
+    final byName = index.byName;
+    var nextTopLevelOrder = index.nextTopLevelOrder;
+    var createdCount = 0;
+
+    for (final preset in presets) {
+      final name = preset.name.trim();
+      if (name.isEmpty) continue;
+      final syncId = deterministicCategorySyncId(
+        kind: kind,
+        level: 1,
+        key: preset.key,
+      );
+      if (bySyncId.containsKey(syncId) ||
+          byName.containsKey(categoryScopedKey(null, name))) {
+        continue;
+      }
+
+      final id = await repository.createCategory(
+        name: name,
+        kind: kind,
+        icon: preset.icon,
+        sortOrder: nextTopLevelOrder++,
+        syncId: syncId,
+      );
+      final created = await repository.getCategoryById(id);
+      if (created != null) {
+        if (created.syncId != null) bySyncId[created.syncId!] = created;
+        byName[categoryScopedKey(created.parentId, created.name)] = created;
+      }
+      createdCount++;
+    }
+    return createdCount;
+  }
+
+  /// 已有分类的两张索引（按 syncId、按「父级+名字」）和下一个可用的一级 sortOrder。
+  ///
+  /// 去重规则只有这一份：默认包和「工程/维修」包各写一遍的话，迟早出现一边认得同名
+  /// 分类、另一边又建出第二份的情况。
+  static Future<
+      ({
+        Map<String, Category> bySyncId,
+        Map<String, Category> byName,
+        int nextTopLevelOrder,
+      })> _categoryIndex(
+    CategoryRepository repository,
+    String kind,
+  ) async {
+    final categories = (await repository.getAllCategories())
+        .where((category) => category.kind == kind)
+        .toList();
+    return (
+      bySyncId: {
+        for (final category in categories)
+          if (category.syncId != null) category.syncId!: category,
+      },
+      byName: {
+        for (final category in categories)
+          categoryScopedKey(category.parentId, category.name): category,
+      },
+      nextTopLevelOrder: categories
+              .where((category) => category.level == 1)
+              .fold<int>(
+                -1,
+                (maxOrder, category) => category.sortOrder > maxOrder
+                    ? category.sortOrder
+                    : maxOrder,
+              ) +
+          1,
+    );
+  }
+
   static Future<int> addDefaultCategories({
     required CategoryRepository repository,
     required AppLocalizations l10n,
@@ -662,31 +819,13 @@ class SeedService {
       throw ArgumentError.value(kind, 'kind', 'Expected expense or income');
     }
 
-    final categories = (await repository.getAllCategories())
-        .where((category) => category.kind == kind)
-        .toList();
-    // 分类名的作用域是「同一父级 + 同 kind」，所以索引 key 必须带上父级：一级用
-    // 空父级段，二级用它的 parentId。平铺按 name 建索引会让一级/二级互相遮蔽 ——
-    // 结果是种子分类漏建，或把已存在的二级误当成父级分组后整组跳过。
-    String scopedKey(int? parentId, String name) => '${parentId ?? ''}|$name';
-    final bySyncId = <String, Category>{
-      for (final category in categories)
-        if (category.syncId != null) category.syncId!: category,
-    };
-    final byName = <String, Category>{
-      for (final category in categories)
-        scopedKey(category.parentId, category.name): category,
-    };
-    var nextTopLevelOrder = categories
-            .where((category) => category.level == 1)
-            .fold<int>(
-              -1,
-              (maxOrder, category) => category.sortOrder > maxOrder
-                  ? category.sortOrder
-                  : maxOrder,
-            ) +
-        1;
+    final index = await _categoryIndex(repository, kind);
+    final bySyncId = index.bySyncId;
+    final byName = index.byName;
+    var nextTopLevelOrder = index.nextTopLevelOrder;
     var createdCount = 0;
+    String scopedKey(int? parentId, String name) =>
+        categoryScopedKey(parentId, name);
 
     if (!hierarchical) {
       final keys = kind == 'expense'

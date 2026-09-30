@@ -879,7 +879,9 @@ class _BeeAppState extends ConsumerState<BeeApp>
           if (kDebugMode)
             Positioned(
               right: 16,
-              bottom: 100,
+              // 让开首页的 AI 悬浮球（默认距底 120、直径 52），否则 debug 包上两者
+              // 叠在一起，拖动时看不出动的到底是哪个。
+              bottom: 190,
               child: FloatingActionButton.small(
                 heroTag: 'themeSwitcher',
                 backgroundColor: Theme.of(context).brightness == Brightness.dark

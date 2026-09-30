@@ -1,3 +1,5 @@
+import 'dart:ui' show Offset;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -217,6 +219,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       ref.watch(baseCurrencyInitProvider.future),
       ref.watch(headerSkinInitProvider.future),
       ref.watch(securityInitProvider.future),
+      ref.watch(aiFabPositionInitProvider.future),
     ]);
     logger.info(tag, '基础配置初始化完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
@@ -430,5 +433,27 @@ class AIAssistantSetter {
 
 final aiAssistantSetterProvider = Provider<AIAssistantSetter>((ref) {
   return AIAssistantSetter();
+});
+
+/// 首页 AI 记账悬浮球的位置：`dx` 是距右边界、`dy` 是距底部的逻辑像素。
+///
+/// 锚右下角而不是存左上角绝对坐标 —— 转屏或换机型时左上角坐标会把球甩到屏幕中间，
+/// 右下角锚定至少还落在用户原来放的那一片。值不跟字体缩放走：这是手指拖出来的位置，
+/// 再乘一次系数就和手指对不上了。
+final aiFabPositionProvider =
+    StateProvider<Offset>((ref) => const Offset(16, 120));
+
+/// 悬浮球位置的持久化初始化（挂在启屏流程里 await，见 appSplashInitProvider）。
+final aiFabPositionInitProvider = FutureProvider<void>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final right = prefs.getDouble('aiFabRight');
+  final bottom = prefs.getDouble('aiFabBottom');
+  if (right != null && bottom != null) {
+    ref.read(aiFabPositionProvider.notifier).state = Offset(right, bottom);
+  }
+  ref.listen<Offset>(aiFabPositionProvider, (prev, next) {
+    prefs.setDouble('aiFabRight', next.dx);
+    prefs.setDouble('aiFabBottom', next.dy);
+  });
 });
 

@@ -682,8 +682,25 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
 
+    // 外层 tab 栏是胶囊 56 + 12 间距 + 系统安全区；首页在 extendBody 下铺满整屏，
+    // 悬浮球得自己停在导航栏上方。
+    final fabBottomInset = MediaQuery.viewPaddingOf(context).bottom + 68;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor, // ⭐ 自适应背景色
+      floatingActionButton: aiEnabled
+          ? AiRecordFab(
+              tooltip: AppLocalizations.of(context).aiChatTitle,
+              onTap: _openAIChat,
+              bottomInset: fabBottomInset,
+            )
+          : null,
+      floatingActionButtonLocation: AiRecordFabLocation(
+        position: ref.watch(aiFabPositionProvider),
+        bottomInset: fabBottomInset,
+      ),
+      // 拖动时位置每帧都在变，默认的 scaling 动画会给球加一段跟随位移，手感发飘。
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       body: Column(
         children: [
           Consumer(builder: (context, ref, _) {

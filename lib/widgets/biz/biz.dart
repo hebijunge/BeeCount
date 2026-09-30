@@ -6,6 +6,7 @@ export 'transaction_list_item.dart';
 export 'transaction_list.dart';
 export 'day_section_header.dart';
 export 'app_empty.dart';
+export 'ai_record_fab.dart';
 export 'info_tag.dart';
 export 'ledger_card.dart';
 export 'ledger_stat_table.dart';

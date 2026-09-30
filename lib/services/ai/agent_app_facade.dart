@@ -355,7 +355,7 @@ final class AgentAppFacade {
         'finalText': result.text,
       });
 
-      final response = _responseFor(result, localTools, l10n);
+      final response = await _responseFor(result, localTools, l10n);
       logger.info('AgentCore', '运行结果已生成', {
         'runId': runId,
         'responseType': response.type,
@@ -621,11 +621,11 @@ final class AgentAppFacade {
     }
   }
 
-  AIResponse _responseFor(
+  Future<AIResponse> _responseFor(
     AgentRunResult result,
     LocalAgentTools tools,
     AppLocalizations? l10n,
-  ) {
+  ) async {
     for (final call in result.executedCalls) {
       if (call.name != 'record_transaction_from_text') continue;
       final recorded = tools.recordResultFor(call);
@@ -641,7 +641,8 @@ final class AgentAppFacade {
           .map((bill) => BillInfo.fromJson(Map<String, dynamic>.from(bill)))
           .toList();
       if (bills.isNotEmpty && bills.length == recorded.transactionIds.length) {
-        return AIResponse.billCards(bills, recorded.transactionIds);
+        return AIResponse.billCards(bills, recorded.transactionIds,
+            ledgerName: await _ledgerLabelFor(bills));
       }
       return AIResponse.text(
         l10n?.agentRecordCreated(recorded.transactionIds.length) ??
@@ -653,6 +654,23 @@ final class AgentAppFacade {
           ? (l10n?.agentStepsExceeded ?? '这次操作步骤过多，请简化后重试。')
           : result.text,
     );
+  }
+
+  /// 这批账单实际落进了哪一本，报给回执用。跨本时不报名字，免得拿一本代表全部。
+  Future<String?> _ledgerLabelFor(List<BillInfo> bills) async {
+    final ids = bills.map((bill) => bill.ledgerId).toSet();
+    if (ids.length != 1) return null;
+    final wanted = ids.first;
+    if (wanted == null) return null;
+    try {
+      final catalog = await _toolGateway.getLedgerCatalog();
+      final matched =
+          catalog.where((ledger) => ledger.id == wanted).toList();
+      return matched.isEmpty ? null : matched.first.name;
+    } catch (_) {
+      // 报名字失败不该让一次正常记账变成报错。
+      return null;
+    }
   }
 }
 

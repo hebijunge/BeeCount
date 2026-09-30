@@ -276,15 +276,21 @@ class AIResponse {
   /// 多笔/单笔统一入口。bills 与 txIds 必须等长且非空。
   ///
   /// [note] 附加在成功文案后的一行提示(目前用于多币种「缺汇率按 1:1 暂记」)。
+  /// [ledgerName] 实际落账的那本账本。AI 记账支持记进指定账本之后，回执必须报得出
+  /// 落在哪一本：用户点名了一个本机没有的账本时，工具分不出「没点名」和「点了个
+  /// 清单外的名字」，这笔会记进当前账本，账本名是用户唯一能当场发现记错本的机会。
   factory AIResponse.billCards(List<BillInfo> bills, List<int> txIds,
-      {String? note}) {
+      {String? note, String? ledgerName}) {
     assert(bills.length == txIds.length && bills.isNotEmpty,
         'bills/txIds 必须等长且非空');
     final n = bills.length;
     final base = n == 1 ? '✅ 记账成功' : '✅ 已记账 $n 笔';
+    final titled = ledgerName == null || ledgerName.isEmpty
+        ? base
+        : '$base · 记入「$ledgerName」';
     return AIResponse(
       type: 'bill_card',
-      text: (note == null || note.isEmpty) ? base : '$base\n$note',
+      text: (note == null || note.isEmpty) ? titled : '$titled\n$note',
       bills: List.unmodifiable(bills),
       transactionIds: List.unmodifiable(txIds),
     );

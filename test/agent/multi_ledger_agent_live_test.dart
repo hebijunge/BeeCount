@@ -170,6 +170,73 @@ void main() {
     expect(inGuoyu.single.t.note, contains('结构胶'),
         reason: '备注没留下买的东西，这笔账在国宇那本里说不清');
   }, timeout: const Timeout(Duration(minutes: 3)));
+
+  /// 用户点名了一个本机没有的账本时，回执必须报出钱实际落在哪本。
+  ///
+  /// 工具层能锁住「点了清单里的名字却漏传 ledgerName」（回看 sourceText 就能查出来），
+  /// 但「没点名」和「点了个清单外的名字」在省略 ledgerName 时是同一个信号，分不开 ——
+  /// 真机活体测过三种写法：ledgerName 可选时模型对清单外的名字干脆不传；改成必填它就连
+  /// 清单内的「国宇」都抄 current 的名称交差。所以这一条锁的不是"别写库"，而是"写进
+  /// 当前账本时必须当场说清楚是哪本"，让用户有机会发现记错了本子。
+  test('用户点名清单外的账本时，回执要报出实际落账的那本', () async {
+    if (apiKey.isEmpty) {
+      markTestSkipped('未提供 ZHIPU_API_KEY，跳过真模型验证');
+      return;
+    }
+
+    final db = BeeDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = LocalRepository(db);
+
+    final huaheng = await repo.createLedger(name: '华恒远');
+    final guoyu = await repo.createLedger(name: '国宇');
+
+    await _useZhipuTextModel(apiKey, AIServiceProviderConfig.zhipuDefault);
+
+    final gateway = BeeCountLocalAgentToolGateway(
+      repository: repo,
+      database: db,
+      baseCurrency: () => 'CNY',
+      bookkeeper: AiBookkeeper(
+        repository: repo,
+        engine: const DefaultAiExtractionEngine(),
+        persister: BillCreationService(repo),
+      ),
+      memoryRepository: LocalAgentMemoryRepository(db),
+    );
+    final recorder = _RecordingGateway(gateway);
+    final facade = AgentAppFacade(
+      memoryRepository: LocalAgentMemoryRepository(db),
+      toolGateway: recorder,
+      permissionStore: _AllowAllPermissions(),
+      runIdFactory: () => 'live-unknown-ledger',
+    );
+
+    final response = await facade.processMessage(
+      message: '给蓝图买电钻380',
+      ledgerId: huaheng,
+    );
+
+    // ignore: avoid_print
+    print('模型回答: ${response.text}');
+    // ignore: avoid_print
+    print('记账工具收到的账本: ${recorder.recordRequests}');
+
+    for (final ledgerId in [huaheng, guoyu]) {
+      final rows = await repo.getRecentTransactionsWithCategory(
+        ledgerId: ledgerId,
+        limit: 10,
+      );
+      // 工具层区分不了「用户没点名」和「点了个清单外的名字」，这笔会落进当前账本。
+      // 能锁住的是回执：钱落在哪本必须说出口，用户才有机会当场发现记错了本子。
+      if (ledgerId == huaheng) {
+        expect(response.text, contains('华恒远'),
+            reason: '静默记进当前账本而不报名字，等于让用户以为记进了「蓝图」');
+      } else {
+        expect(rows, isEmpty, reason: '不该猜着记进别的账本');
+      }
+    }
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }
 
 /// 真模型用例的公共前置。必须用 update 而不是 add：getProviders() 首次会先落一条空

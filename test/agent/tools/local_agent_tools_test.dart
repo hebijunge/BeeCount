@@ -40,12 +40,15 @@ void main() {
           AgentLedgerSummary(id: 2, name: '国宇', currency: 'CNY'),
         ];
 
-    Future<Map<String, Object?>> record({Object? ledgerName}) =>
+    Future<Map<String, Object?>> record({
+      Object? ledgerName,
+      String sourceText = '给国宇买白结构胶一箱150',
+    }) =>
         tools['record_transaction_from_text']!.execute(
           AgentToolCall(
             name: 'record_transaction_from_text',
             arguments: {
-              'sourceText': '给国宇买白结构胶一箱150',
+              'sourceText': sourceText,
               if (ledgerName != null) 'ledgerName': ledgerName,
             },
           ),
@@ -68,12 +71,25 @@ void main() {
       expect(gateway.recordRequests.single.ledgerId, 2);
     });
 
-    test('没点名账本时仍记当前账本，行为与改动前一致', () async {
+    test('用户没点名账本时才记当前账本', () async {
       twoLedgers();
 
-      await record();
+      await record(sourceText: '午饭 35');
 
-      expect(gateway.recordRequests, [(ledgerId: 1, text: '给国宇买白结构胶一箱150')]);
+      expect(gateway.recordRequests, [(ledgerId: 1, text: '午饭 35')]);
+    });
+
+    // 真机活体抓到的：模型遇到清单外的账本名会干脆不传 ledgerName，于是「给蓝图买
+    // 电钻380」静默落进当前账本、还回一句记账成功。清单内的那一半能靠 sourceText 查出来
+    // —— 话里点了别的账本却没传，就不能当成「用户没点名」。
+    test('话里点了别的账本却没传 ledgerName 时拒绝', () async {
+      twoLedgers();
+
+      final result = await record();
+
+      expect(gateway.recordRequests, isEmpty, reason: '漏传不能静默落当前账本');
+      expect(result['success'], isFalse);
+      expect(result['error'], contains('国宇'));
     });
 
     test('账本不存在时拒绝记账，绝不退回当前账本', () async {

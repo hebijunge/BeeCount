@@ -866,14 +866,34 @@ final class LocalAgentTools {
   /// 不收 id 是因为名称才是用户嘴上说的东西；让模型自己挑 id，等于让它决定钱进哪本账。
   /// 解析不出来一律拒绝，绝不悄悄退回当前账本 —— 那样记错了账面上一切正常，只能事后
   /// 翻出来改。账本名在本机不唯一（建账本没做重名校验），所以重名也必须停下来问用户。
+  /// ledgerName 保持可选：实测必填反而会让模型抄一个现成的值交差，连点名正确的用例
+  /// 都会记错本。省略有两种可能 —— 用户真没点名，或者点了名而模型没传。后者能检出一半：
+  /// sourceText 里出现了别的账本的名字，就不能当成「没点名」静默落当前本。
   Future<({int? id, String? error})> _recordTargetLedger(
       AgentToolCall call) async {
     final raw = call.arguments['ledgerName'];
+    final catalog = await gateway.getLedgerCatalog();
     if (raw is! String || raw.trim().isEmpty) {
+      final source = call.arguments['sourceText'];
+      final text = source is String ? source : '';
+      final mentioned = catalog
+          .where((ledger) =>
+              ledger.id != _ledgerId &&
+              ledger.name.trim().isNotEmpty &&
+              text.contains(ledger.name.trim()))
+          .toList();
+      if (mentioned.isNotEmpty) {
+        final names = mentioned.map((ledger) => '「${ledger.name}」').join('、');
+        return (
+          id: null,
+          error: '用户这句话里提到$names，但 ledgerName 没传，不能当成没点名记进当前账本。'
+              '请把用户说出的账本名原样填进 ledgerName 再调用一次，'
+              '或向用户确认要记进哪一本。',
+        );
+      }
       return (id: _ledgerId, error: null);
     }
     final wanted = raw.trim();
-    final catalog = await gateway.getLedgerCatalog();
     final matched =
         catalog.where((ledger) => ledger.name.trim() == wanted).toList();
     if (matched.length == 1) return (id: matched.single.id, error: null);

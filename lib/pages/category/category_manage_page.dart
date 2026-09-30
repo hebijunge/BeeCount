@@ -34,6 +34,8 @@ class CategoryManagePage extends ConsumerStatefulWidget {
 
 class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with TickerProviderStateMixin {
   late TabController _tabController;
+  Future<int>? _presetMissingFuture;
+  bool _presetApplying = false;
 
   @override
   void initState() {
@@ -46,6 +48,55 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
     _tabController.addListener(() {
       setState(() {}); // 重新构建以更新按钮状态
     });
+    // 取数要读 AppLocalizations，不能在 initState 里同步发起：那时 InheritedWidget
+    // 还没就绪，异常只会静静冒到 zone 里，卡片就永远不出现。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPresetMissing());
+  }
+
+  void _refreshPresetMissing() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _presetMissingFuture = SeedService.projectRepairPresetMissingCount(
+        repository: ref.read(repositoryProvider),
+        l10n: l10n,
+      );
+    });
+  }
+
+  /// 一次补齐支出侧和收入侧。分两次点太容易只做一半，结果收入侧仍是那套消费型分类。
+  Future<void> _applyProjectRepairPreset() async {
+    final l10n = AppLocalizations.of(context);
+    final repository = ref.read(repositoryProvider);
+    setState(() => _presetApplying = true);
+    try {
+      var created = 0;
+      for (final kind in const ['expense', 'income']) {
+        created += await SeedService.addProjectRepairCategories(
+          repository: repository,
+          l10n: l10n,
+          kind: kind,
+        );
+      }
+      if (!mounted) return;
+      setState(() => _presetApplying = false);
+      _refreshPresetMissing();
+      showToast(
+        context,
+        created == 0
+            ? l10n.categoryGenerateDefaultNoChanges
+            : l10n.categoryPresetProjectAdded(created),
+      );
+      final activeLedgerId = ref.read(currentLedgerIdProvider);
+      if (activeLedgerId > 0) {
+        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _presetApplying = false);
+      logger.error('CategoryManage', '加入工程/维修预设包失败: $e');
+      showToast(context, l10n.categoryGenerateDefaultFailed);
+    }
   }
 
   @override
@@ -85,6 +136,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
             ],
           ),
           _buildTransferIconSetting(context, l10n, primaryColor),
+          _buildProjectPresetCard(context, l10n, primaryColor),
           Expanded(
             child: categoriesWithCountAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -592,6 +644,84 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
   }
 
   /// 构建转账图标设置区域
+  /// 「工程/维修」预设包卡片。分类是全局的，所以卡片放在两个 tab 之上，一次补齐两侧。
+  ///
+  /// 之前它只藏在「生成默认分类」弹窗的一个单选里，而且默认还停在「日常消费」——
+  /// 要用这套分类的人得先知道有这层选择。缺够 0 项就自己消失，用户删掉其中几个会再回来。
+  Widget _buildProjectPresetCard(
+      BuildContext context, AppLocalizations l10n, Color primaryColor) {
+    final future = _presetMissingFuture;
+    if (future == null) return const SizedBox.shrink();
+    return FutureBuilder<int>(
+      future: future,
+      builder: (context, snapshot) {
+        final missing = snapshot.data ?? 0;
+        if (missing == 0) return const SizedBox.shrink();
+        return Container(
+          key: const ValueKey('project-preset-card'),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: BeeTokens.surface(context),
+            border: Border.all(color: BeeTokens.border(context)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.engineering_outlined,
+                      size: 22, color: primaryColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.categoryPresetProjectCardTitle,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: BeeTokens.textPrimary(context),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    key: const ValueKey('project-preset-add'),
+                    onPressed: _presetApplying ? null : _applyProjectRepairPreset,
+                    child: _presetApplying
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.categoryPresetProjectAdd),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.categoryPresetProjectCardDesc,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: BeeTokens.textSecondary(context),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.categoryPresetProjectCardMissing(missing),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: primaryColor,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildTransferIconSetting(BuildContext context, AppLocalizations l10n, Color primaryColor) {
     return FutureBuilder<db.Category>(
       future: ref.read(repositoryProvider).getTransferCategory(),

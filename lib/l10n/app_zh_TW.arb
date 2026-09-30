@@ -781,6 +781,11 @@
   "categoryPresetProjectRepairFee": "維修費",
   "categoryPresetProjectProjectFee": "工程款",
   "categoryPresetProjectMaterialFee": "材料費",
+  "categoryPresetProjectCardTitle": "工程/維修分類包",
+  "categoryPresetProjectCardDesc": "建材、五金、工具、配件、人工、運輸、水電、防護；收入側再加維修費、工程款、材料費",
+  "categoryPresetProjectCardMissing": "還差 {count} 項未建立",
+  "categoryPresetProjectAdd": "一鍵加入",
+  "categoryPresetProjectAdded": "已加入 {count} 個分類",
   "categoryGenerateDefaultSuccess": "已產生 {count} 個預設分類",
   "@categoryGenerateDefaultSuccess": {
     "placeholders": {

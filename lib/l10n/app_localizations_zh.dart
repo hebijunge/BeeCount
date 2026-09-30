@@ -790,6 +790,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryPresetProjectMaterialFee => '材料费';
 
   @override
+  String get categoryPresetProjectCardTitle => '工程/维修分类包';
+
+  @override
+  String get categoryPresetProjectCardDesc => '建材、五金、工具、配件、人工、运输、水电、防护；收入侧再加维修费、工程款、材料费';
+
+  @override
+  String categoryPresetProjectCardMissing(Object count) {
+    return '还差 $count 项没建';
+  }
+
+  @override
+  String get categoryPresetProjectAdd => '一键加入';
+
+  @override
+  String categoryPresetProjectAdded(Object count) {
+    return '已加入 $count 个分类';
+  }
+
+  @override
   String categoryGenerateDefaultSuccess(int count) {
     return '已生成 $count 个默认分类';
   }
@@ -8836,6 +8855,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get categoryPresetProjectMaterialFee => '材料費';
+
+  @override
+  String get categoryPresetProjectCardTitle => '工程/維修分類包';
+
+  @override
+  String get categoryPresetProjectCardDesc => '建材、五金、工具、配件、人工、運輸、水電、防護；收入側再加維修費、工程款、材料費';
+
+  @override
+  String categoryPresetProjectCardMissing(Object count) {
+    return '還差 $count 項未建立';
+  }
+
+  @override
+  String get categoryPresetProjectAdd => '一鍵加入';
+
+  @override
+  String categoryPresetProjectAdded(Object count) {
+    return '已加入 $count 個分類';
+  }
 
   @override
   String categoryGenerateDefaultSuccess(int count) {

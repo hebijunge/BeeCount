@@ -367,6 +367,25 @@
   "categoryPresetProjectRepairFee": "维修费",
   "categoryPresetProjectProjectFee": "工程款",
   "categoryPresetProjectMaterialFee": "材料费",
+  "categoryPresetProjectCardTitle": "工程/维修分类包",
+  "categoryPresetProjectCardDesc": "建材、五金、工具、配件、人工、运输、水电、防护；收入侧再加维修费、工程款、材料费",
+  "categoryPresetProjectCardMissing": "还差 {count} 项没建",
+  "@categoryPresetProjectCardMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "categoryPresetProjectAdd": "一键加入",
+  "categoryPresetProjectAdded": "已加入 {count} 个分类",
+  "@categoryPresetProjectAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "categoryGenerateDefaultSuccess": "已生成 {count} 个默认分类",
   "@categoryGenerateDefaultSuccess": {
     "placeholders": {

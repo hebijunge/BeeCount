@@ -790,6 +790,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryPresetProjectMaterialFee => 'Materials cost';
 
   @override
+  String get categoryPresetProjectCardTitle => 'Construction & repair pack';
+
+  @override
+  String get categoryPresetProjectCardDesc => 'Materials, hardware, tools, parts, labor, freight, utilities, safety gear; income side adds repair fees, project payments and material sales';
+
+  @override
+  String categoryPresetProjectCardMissing(Object count) {
+    return '$count not added yet';
+  }
+
+  @override
+  String get categoryPresetProjectAdd => 'Add pack';
+
+  @override
+  String categoryPresetProjectAdded(Object count) {
+    return 'Added $count categories';
+  }
+
+  @override
   String categoryGenerateDefaultSuccess(int count) {
     return 'Generated $count default categories';
   }

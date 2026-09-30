@@ -1,11 +1,13 @@
 // 「工程/维修」预设包的行为契约。
 //
 // 内置默认包是消费型的（餐饮/交通/服饰…），工程采购和上门维修的账本在里面找不到落点。
-// 这里锁四件事：四个语言都能解析出真实分类名（不许 fallback 成 snake_case key）、
-// 支出 8 类 + 收入 3 类、重复点不堆出第二份、跟默认包混着点也不产生同名重复。
+// 这里锁：四个语言都能解析出真实分类名（不许 fallback 成 snake_case key）、支出 8 类 +
+// 收入 3 类、重复点不堆出第二份、跟默认包混着点也不产生同名重复，以及分类页卡片上那个
+// 「还缺几项」的计数与实际生成同源 —— 改名/自建同名/删掉几项都要能正确反映。
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -101,5 +103,85 @@ void main() {
     } finally {
       await db.close();
     }
+  });
+
+  // 卡片上那句「还差 N 项没建」和真正生成必须读同一份表：两处各列一遍，迟早出现一边
+  // 说还缺、另一边却全都跳过的情况。
+  group('预设包还缺几项', () {
+    late BeeDatabase db;
+    late LocalRepository repo;
+    late AppLocalizations l10n;
+
+    setUp(() async {
+      l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+      db = BeeDatabase.forTesting(NativeDatabase.memory());
+      repo = LocalRepository(db);
+    });
+
+    tearDown(() async => db.close());
+
+    Future<void> addBothSides() async {
+      await SeedService.addProjectRepairCategories(
+          repository: repo, l10n: l10n, kind: 'expense');
+      await SeedService.addProjectRepairCategories(
+          repository: repo, l10n: l10n, kind: 'income');
+    }
+
+    Future<int> missing() => SeedService.projectRepairPresetMissingCount(
+        repository: repo, l10n: l10n);
+
+    test('空库缺 11 项：支出 8 + 收入 3', () async {
+      expect(await missing(), 11);
+    });
+
+    test('只补齐支出侧，仍提示差收入那 3 项', () async {
+      await SeedService.addProjectRepairCategories(
+          repository: repo, l10n: l10n, kind: 'expense');
+
+      expect(await missing(), 3, reason: '卡片要能催用户把收入侧也补上');
+    });
+
+    test('两侧补齐归零，再生成也不会又冒出缺口', () async {
+      await addBothSides();
+      expect(await missing(), 0);
+
+      final again = await SeedService.addProjectRepairCategories(
+          repository: repo, l10n: l10n, kind: 'expense');
+      expect(again, 0);
+      expect(await missing(), 0);
+    });
+
+    test('用户自己建过同名分类算已存在，不再补第二份', () async {
+      await addBothSides();
+      await (db.delete(db.categories)..where((t) => t.name.equals('建材'))).go();
+      await repo.createCategory(
+          name: '建材', kind: 'expense', icon: 'build', sortOrder: 99);
+
+      expect(await missing(), 0, reason: '同名分类认已有的');
+      final rows = await (db.select(db.categories)
+            ..where((t) => t.name.equals('建材')))
+          .get();
+      expect(rows, hasLength(1));
+    });
+
+    test('改名后仍算齐 —— syncId 还在就不该再补一份', () async {
+      await addBothSides();
+      final row = await (db.select(db.categories)
+            ..where((t) => t.name.equals('五金')))
+          .getSingle();
+      await (db.update(db.categories)..where((t) => t.id.equals(row.id)))
+          .write(const CategoriesCompanion(name: Value('五金件')));
+
+      expect(await missing(), 0);
+    });
+
+    test('删掉两项后重新提示缺 2 项', () async {
+      await addBothSides();
+      await (db.delete(db.categories)
+            ..where((t) => t.name.isIn(const ['建材', '维修费'])))
+          .go();
+
+      expect(await missing(), 2);
+    });
   });
 }

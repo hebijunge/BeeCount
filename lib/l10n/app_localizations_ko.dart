@@ -790,6 +790,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get categoryPresetProjectMaterialFee => '자재비';
 
   @override
+  String get categoryPresetProjectCardTitle => '공사/수리 분류 세트';
+
+  @override
+  String get categoryPresetProjectCardDesc => '자재, 철물, 공구, 부품, 인건비, 운반비, 수도·전기, 안전용품 / 수입: 수리비, 공사대금, 자재비';
+
+  @override
+  String categoryPresetProjectCardMissing(Object count) {
+    return '$count개가 아직 없습니다';
+  }
+
+  @override
+  String get categoryPresetProjectAdd => '한 번에 추가';
+
+  @override
+  String categoryPresetProjectAdded(Object count) {
+    return '분류 $count개 추가됨';
+  }
+
+  @override
   String categoryGenerateDefaultSuccess(int count) {
     return '기본 카테고리 $count개를 생성했습니다';
   }

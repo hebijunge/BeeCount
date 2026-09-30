@@ -378,6 +378,11 @@
   "categoryPresetProjectRepairFee": "Repair fee",
   "categoryPresetProjectProjectFee": "Project payment",
   "categoryPresetProjectMaterialFee": "Materials cost",
+  "categoryPresetProjectCardTitle": "Construction & repair pack",
+  "categoryPresetProjectCardDesc": "Materials, hardware, tools, parts, labor, freight, utilities, safety gear; income side adds repair fees, project payments and material sales",
+  "categoryPresetProjectCardMissing": "{count} not added yet",
+  "categoryPresetProjectAdd": "Add pack",
+  "categoryPresetProjectAdded": "Added {count} categories",
   "categoryGenerateDefaultSuccess": "Generated {count} default categories",
   "@categoryGenerateDefaultSuccess": {
     "placeholders": {

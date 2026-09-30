@@ -658,6 +658,57 @@ class SeedService {
   static String categoryScopedKey(int? parentId, String name) =>
       '${parentId ?? ''}|$name';
 
+  /// 预设包成员表：卡片上的「还缺几个」和真正生成共用这一份，两处各列一遍迟早对不上。
+  static const List<CategoryPreset> _projectRepairExpense = [
+    (key: 'pr_material', icon: 'construction', name: _prMaterial),
+    (key: 'pr_hardware', icon: 'handyman', name: _prHardware),
+    (key: 'pr_tool', icon: 'design_services', name: _prTool),
+    (key: 'pr_part', icon: 'shopping_cart', name: _prPart),
+    (key: 'pr_labor', icon: 'engineering', name: _prLabor),
+    (key: 'pr_freight', icon: 'local_shipping', name: _prFreight),
+    (key: 'pr_utility', icon: 'flash_on', name: _prUtility),
+    (key: 'pr_safety', icon: 'health_and_safety', name: _prSafety),
+  ];
+
+  static const List<CategoryPreset> _projectRepairIncome = [
+    (key: 'pr_repair_fee', icon: 'handyman', name: _prRepairFee),
+    (key: 'pr_project_fee', icon: 'account_balance', name: _prProjectFee),
+    (key: 'pr_material_fee', icon: 'shopping_cart', name: _prMaterialFee),
+  ];
+
+  static List<CategoryPreset> projectRepairPresetsOf(String kind) {
+    if (kind != 'expense' && kind != 'income') {
+      throw ArgumentError.value(kind, 'kind', 'Expected expense or income');
+    }
+    return kind == 'expense' ? _projectRepairExpense : _projectRepairIncome;
+  }
+
+  /// 预设包还差几项没建，0 表示已齐 —— 分类页用它决定那张卡片要不要出现。
+  static Future<int> projectRepairPresetMissingCount({
+    required CategoryRepository repository,
+    required AppLocalizations l10n,
+  }) async {
+    var missing = 0;
+    for (final kind in const ['expense', 'income']) {
+      final index = await _categoryIndex(repository, kind);
+      for (final preset in projectRepairPresetsOf(kind)) {
+        final name = preset.name(l10n).trim();
+        if (name.isEmpty) continue;
+        final syncId = deterministicCategorySyncId(
+          kind: kind,
+          level: 1,
+          key: preset.key,
+        );
+        if (index.bySyncId.containsKey(syncId) ||
+            index.byName.containsKey(categoryScopedKey(null, name))) {
+          continue;
+        }
+        missing++;
+      }
+    }
+    return missing;
+  }
+
   /// 「工程/维修」预设包：给以项目采购、上门维修为主的账本用。
   ///
   /// 内置那套是消费型的（餐饮/交通/服饰…），「一箱白结构胶」在其中没有落点，只能塞
@@ -675,66 +726,7 @@ class SeedService {
       throw ArgumentError.value(kind, 'kind', 'Expected expense or income');
     }
 
-    final presets = kind == 'expense'
-        ? [
-            (
-              key: 'pr_material',
-              name: l10n.categoryPresetProjectMaterial,
-              icon: 'construction'
-            ),
-            (
-              key: 'pr_hardware',
-              name: l10n.categoryPresetProjectHardware,
-              icon: 'handyman'
-            ),
-            (
-              key: 'pr_tool',
-              name: l10n.categoryPresetProjectTool,
-              icon: 'design_services'
-            ),
-            (
-              key: 'pr_part',
-              name: l10n.categoryPresetProjectPart,
-              icon: 'shopping_cart'
-            ),
-            (
-              key: 'pr_labor',
-              name: l10n.categoryPresetProjectLabor,
-              icon: 'engineering'
-            ),
-            (
-              key: 'pr_freight',
-              name: l10n.categoryPresetProjectFreight,
-              icon: 'local_shipping'
-            ),
-            (
-              key: 'pr_utility',
-              name: l10n.categoryPresetProjectUtility,
-              icon: 'flash_on'
-            ),
-            (
-              key: 'pr_safety',
-              name: l10n.categoryPresetProjectSafety,
-              icon: 'health_and_safety'
-            ),
-          ]
-        : [
-            (
-              key: 'pr_repair_fee',
-              name: l10n.categoryPresetProjectRepairFee,
-              icon: 'handyman'
-            ),
-            (
-              key: 'pr_project_fee',
-              name: l10n.categoryPresetProjectProjectFee,
-              icon: 'account_balance'
-            ),
-            (
-              key: 'pr_material_fee',
-              name: l10n.categoryPresetProjectMaterialFee,
-              icon: 'shopping_cart'
-            ),
-          ];
+    final presets = projectRepairPresetsOf(kind);
 
     final index = await _categoryIndex(repository, kind);
     final bySyncId = index.bySyncId;
@@ -743,7 +735,7 @@ class SeedService {
     var createdCount = 0;
 
     for (final preset in presets) {
-      final name = preset.name.trim();
+      final name = preset.name(l10n).trim();
       if (name.isEmpty) continue;
       final syncId = deterministicCategorySyncId(
         kind: kind,
@@ -1145,3 +1137,38 @@ class SeedService {
     }
   }
 }
+
+/// 预设包的一项：[key] 决定稳定的 syncId，[name] 按当前语言取分类名。
+typedef CategoryPreset = ({
+  String key,
+  String icon,
+  String Function(AppLocalizations l10n) name,
+});
+
+String _prMaterial(AppLocalizations l10n) =>
+    l10n.categoryPresetProjectMaterial;
+
+String _prHardware(AppLocalizations l10n) =>
+    l10n.categoryPresetProjectHardware;
+
+String _prTool(AppLocalizations l10n) => l10n.categoryPresetProjectTool;
+
+String _prPart(AppLocalizations l10n) => l10n.categoryPresetProjectPart;
+
+String _prLabor(AppLocalizations l10n) => l10n.categoryPresetProjectLabor;
+
+String _prFreight(AppLocalizations l10n) =>
+    l10n.categoryPresetProjectFreight;
+
+String _prUtility(AppLocalizations l10n) => l10n.categoryPresetProjectUtility;
+
+String _prSafety(AppLocalizations l10n) => l10n.categoryPresetProjectSafety;
+
+String _prRepairFee(AppLocalizations l10n) =>
+    l10n.categoryPresetProjectRepairFee;
+
+String _prProjectFee(AppLocalizations l10n) =>
+    l10n.categoryPresetProjectProjectFee;
+
+String _prMaterialFee(AppLocalizations l10n) =>
+    l10n.categoryPresetProjectMaterialFee;

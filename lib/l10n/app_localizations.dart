@@ -1532,6 +1532,36 @@ abstract class AppLocalizations {
   /// **'Materials cost'**
   String get categoryPresetProjectMaterialFee;
 
+  /// No description provided for @categoryPresetProjectCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Construction & repair pack'**
+  String get categoryPresetProjectCardTitle;
+
+  /// No description provided for @categoryPresetProjectCardDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials, hardware, tools, parts, labor, freight, utilities, safety gear; income side adds repair fees, project payments and material sales'**
+  String get categoryPresetProjectCardDesc;
+
+  /// No description provided for @categoryPresetProjectCardMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} not added yet'**
+  String categoryPresetProjectCardMissing(Object count);
+
+  /// No description provided for @categoryPresetProjectAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add pack'**
+  String get categoryPresetProjectAdd;
+
+  /// No description provided for @categoryPresetProjectAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {count} categories'**
+  String categoryPresetProjectAdded(Object count);
+
   /// No description provided for @categoryGenerateDefaultSuccess.
   ///
   /// In en, this message translates to:

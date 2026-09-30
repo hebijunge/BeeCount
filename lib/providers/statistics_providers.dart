@@ -99,9 +99,15 @@ final currentBalanceProvider =
 //
 // 逐本调 getCountsForLedger + getLedgerStats，结余同 [allLedgersBalanceProvider] 一样
 // 走 native_amount（主币种口径）不再二次折算。账本名一并带出，展开行用它标注。
-final perLedgerStatsProvider = FutureProvider.autoDispose<
-    List<({int ledgerId, String name, int txCount, double balance})>>(
-        (ref) async {
+typedef PerLedgerStat = ({
+  int ledgerId,
+  String name,
+  int txCount,
+  double balance,
+});
+
+final perLedgerStatsProvider =
+    FutureProvider.autoDispose<List<PerLedgerStat>>((ref) async {
   final repo = ref.watch(repositoryProvider);
   ref.watch(statsRefreshProvider);
   final link = ref.keepAlive();
@@ -109,7 +115,7 @@ final perLedgerStatsProvider = FutureProvider.autoDispose<
   final accountFeatureEnabled =
       await ref.watch(accountFeatureEnabledProvider.future);
 
-  final result = <({int ledgerId, String name, int txCount, double balance})>[];
+  final result = <PerLedgerStat>[];
   for (final ledger in await repo.getAllLedgers()) {
     final counts = await repo.getCountsForLedger(ledgerId: ledger.id);
     final stats = await repo.getLedgerStats(

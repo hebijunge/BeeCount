@@ -1559,6 +1559,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mineNoLedgerDetail => '가계부가 없습니다';
 
   @override
+  String get mineColLedger => '가계부';
+
+  @override
+  String get mineColCount => '건수';
+
+  @override
+  String get mineColBalance => '잔액';
+
+  @override
   String get mineCloudService => '클라우드 서비스';
 
   @override

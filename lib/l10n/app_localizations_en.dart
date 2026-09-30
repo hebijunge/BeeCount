@@ -1559,6 +1559,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineNoLedgerDetail => 'No ledgers yet';
 
   @override
+  String get mineColLedger => 'Ledger';
+
+  @override
+  String get mineColCount => 'Count';
+
+  @override
+  String get mineColBalance => 'Balance';
+
+  @override
   String get mineCloudService => 'Cloud Service';
 
   @override

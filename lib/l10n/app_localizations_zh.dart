@@ -1559,6 +1559,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineNoLedgerDetail => '暂无账本';
 
   @override
+  String get mineColLedger => '账本';
+
+  @override
+  String get mineColCount => '笔数';
+
+  @override
+  String get mineColBalance => '结余';
+
+  @override
   String get mineCloudService => '云服务';
 
   @override
@@ -9596,6 +9605,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get mineNoLedgerDetail => '暫無帳本';
+
+  @override
+  String get mineColLedger => '帳本';
+
+  @override
+  String get mineColCount => '筆數';
+
+  @override
+  String get mineColBalance => '結餘';
 
   @override
   String get mineCloudService => '雲服務';

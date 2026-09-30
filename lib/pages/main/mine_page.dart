@@ -553,8 +553,8 @@ class MinePage extends ConsumerWidget {
 /// 「我的」页的全部账本汇总区，整块可折叠。
 ///
 /// 各账本逐本明细。顶部两格已是全部账本汇总，这里点开才列出每一本的笔数/结余，
-/// 每行左侧标账本名。结余走 [perLedgerStatsProvider]，各账本已折算到主币种，币种取
-/// baseCurrency 而不是各本自身币种。
+/// 排成「账本 / 笔数 / 结余」三列表，列标题只出现一次。结余走
+/// [perLedgerStatsProvider]，各账本已折算到主币种，币种取 baseCurrency 而不是各本自身币种。
 class _AllLedgersSummarySection extends ConsumerWidget {
   const _AllLedgersSummarySection();
 
@@ -569,8 +569,6 @@ class _AllLedgersSummarySection extends ConsumerWidget {
         .textTheme
         .labelMedium
         ?.copyWith(color: BeeTokens.textSecondary(context));
-    final numStyle = BeeTextTokens.strongTitle(context)
-        .copyWith(fontSize: 20, color: BeeTokens.textPrimary(context));
 
     final perLedger = perLedgerAsync.asData?.value ?? const [];
 
@@ -610,19 +608,8 @@ class _AllLedgersSummarySection extends ConsumerWidget {
         ),
         if (expanded) ...[
           SizedBox(height: 10.0.scaled(context, ref)),
-          for (final ledger in perLedger) ...[
-            Padding(
-              padding: EdgeInsets.only(bottom: 6.0.scaled(context, ref)),
-              child: _PerLedgerRow(
-                name: ledger.name,
-                txCount: ledger.txCount,
-                balance: ledger.balance,
-                currencyCode: baseCurrency,
-                labelStyle: labelStyle,
-                numStyle: numStyle,
-              ),
-            ),
-          ],
+          LedgerStatTable(
+              ledgers: perLedger, currencyCode: baseCurrency),
           if (perLedger.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 6.0.scaled(context, ref)),
@@ -632,78 +619,6 @@ class _AllLedgersSummarySection extends ConsumerWidget {
               ),
             ),
         ],
-      ],
-    );
-  }
-}
-
-/// 单本一行：左侧账本名，右侧笔数/结余两格，与顶部汇总那两格同构。
-class _PerLedgerRow extends StatelessWidget {
-  const _PerLedgerRow({
-    required this.name,
-    required this.txCount,
-    required this.balance,
-    required this.currencyCode,
-    required this.labelStyle,
-    required this.numStyle,
-  });
-
-  final String name;
-  final int txCount;
-  final double balance;
-  final String currencyCode;
-  final TextStyle? labelStyle;
-  final TextStyle numStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 96,
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: BeeTokens.textSecondary(context)),
-          ),
-        ),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: _StatCell(
-                  label: l10n.mineTotalRecords,
-                  value: txCount.toString(),
-                  labelStyle: labelStyle,
-                  numStyle: numStyle.copyWith(fontSize: 15),
-                  centered: false,
-                ),
-              ),
-              Expanded(
-                child: _StatCell(
-                  label: l10n.mineCurrentBalance,
-                  value: balance,
-                  isAmount: true,
-                  currencyCode: currencyCode,
-                  labelStyle: labelStyle,
-                  numStyle: numStyle.copyWith(
-                    fontSize: 15,
-                    color: balance >= 0
-                        ? BeeTokens.textPrimary(context)
-                        : BeeTokens.error(context),
-                  ),
-                  centered: false,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

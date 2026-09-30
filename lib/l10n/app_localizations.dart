@@ -2990,6 +2990,24 @@ abstract class AppLocalizations {
   /// **'No ledgers yet'**
   String get mineNoLedgerDetail;
 
+  /// No description provided for @mineColLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get mineColLedger;
+
+  /// No description provided for @mineColCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Count'**
+  String get mineColCount;
+
+  /// No description provided for @mineColBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get mineColBalance;
+
   /// No description provided for @mineCloudService.
   ///
   /// In en, this message translates to:

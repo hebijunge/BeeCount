@@ -44,6 +44,10 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   /// 默认「时间」在「金额」前，其余保持相对顺序，可被用户拖到任意位置。
   final List<ExportColumn> _columnOrder = List.of(ExportColumn.defaultOrder);
 
+  /// 时间段筛选（整日）：都留空 = 导全量，跟旧版行为一致；设了一侧就按那侧开/闭区间。
+  DateTime? _startDate;
+  DateTime? _endDate;
+
   /// 用户勾过的账本集合；没勾过则回落到当前账本，保持旧版「只导当前账本」的行为。
   Set<int> _effectiveSelection(List<Ledger> ledgers, int currentLedgerId) {
     if (_selectedLedgerIds != null) return _selectedLedgerIds!;
@@ -133,6 +137,12 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                       ),
                   ],
                 ),
+                const SizedBox(height: 20),
+                // 时间段：两行都可留空；空=不限。选中后显示整日日期（整日语义，含当天全天）。
+                Text(l10n.searchDateFilter, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                _dateRow(context, l10n, isStart: true),
+                _dateRow(context, l10n, isStart: false),
                 const SizedBox(height: 20),
                 Text(l10n.exportColumnsLabel,
                     style: Theme.of(context).textTheme.labelLarge),
@@ -266,6 +276,66 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     });
   }
 
+  /// 时间段筛选的一行：起 / 止各一行，复用搜索页同款交互（点日历按钮设值，
+  /// 有值时可一键清空）。日期显示沿用搜索页的 YYYY-MM-DD 硬编码格式，不做 l10n。
+  Widget _dateRow(BuildContext context, AppLocalizations l10n, {required bool isStart}) {
+    final selected = isStart ? _startDate : _endDate;
+    String? formatted;
+    if (selected != null) {
+      final two = (int v) => v.toString().padLeft(2, '0');
+      formatted = '${selected.year}-${two(selected.month)}-${two(selected.day)}';
+    }
+    return ListTile(
+      key: ValueKey(isStart ? 'export-date-start' : 'export-date-end'),
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(isStart ? l10n.searchStartDate : l10n.searchEndDate),
+      subtitle: Text(formatted ?? l10n.searchNotSet),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selected != null)
+            IconButton(
+              key: ValueKey(isStart ? 'export-date-start-clear' : 'export-date-end-clear'),
+              icon: const Icon(Icons.clear, size: 20),
+              onPressed: () {
+                setState(() {
+                  if (isStart) {
+                    _startDate = null;
+                  } else {
+                    _endDate = null;
+                  }
+                });
+              },
+            ),
+          IconButton(
+            key: ValueKey(isStart ? 'export-date-start-pick' : 'export-date-end-pick'),
+            icon: const Icon(Icons.calendar_today, size: 20),
+            onPressed: exporting
+                ? null
+                : () async {
+                    final date = await showWheelDatePicker(
+                      context,
+                      initial: selected ?? DateTime.now(),
+                      mode: WheelDatePickerMode.ymd,
+                      minDate: DateTime(2000),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        if (isStart) {
+                          _startDate = date;
+                        } else {
+                          _endDate = date;
+                        }
+                      });
+                    }
+                  },
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 先弹预览，用户确认后才真正落盘。
   ///
   /// 预览展示的是完整真实数据，但落盘仍走 _export 重新取数 —— 预览只是给人看的同一
@@ -279,6 +349,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           asExcel: _format == ExportFormat.excel,
           columns: {..._columns},
           columnOrder: List.of(_columnOrder),
+          startDate: _startDate,
+          endDate: _endDate,
           withSummarySheet: _withSummarySheet(ledgerIds),
           baseCurrency: ref.read(baseCurrencyProvider),
         ),
@@ -323,6 +395,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           padTimeCell: !asExcel,
           columns: _columns,
           columnOrder: _columnOrder,
+          startDate: _startDate,
+          endDate: _endDate,
           onProgress: (ratio) {
             if (!mounted) return;
             setState(() => progress = (i + ratio) / ledgerIds.length);

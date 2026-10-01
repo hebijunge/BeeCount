@@ -23,6 +23,8 @@ class ExportPreviewPage extends StatefulWidget {
     required this.asExcel,
     required this.columns,
     this.columnOrder,
+    this.startDate,
+    this.endDate,
     this.withSummarySheet = false,
     this.baseCurrency = 'CNY',
   });
@@ -32,6 +34,10 @@ class ExportPreviewPage extends StatefulWidget {
   final bool asExcel;
   final Set<ExportColumn> columns;
   final List<ExportColumn>? columnOrder;
+
+  /// 时间段筛选（整日语义，见 buildSheet）；都为 null = 导全量。
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   /// 是否在开头插一张逐本汇总 sheet —— 由导出页按「Excel + 多账本」判定后传进来，
   /// 预览与落盘必须同一条件，否则预览看到的和文件里的不是一回事。
@@ -74,6 +80,8 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
           padTimeCell: !widget.asExcel,
           columns: widget.columns,
           columnOrder: widget.columnOrder,
+          startDate: widget.startDate,
+          endDate: widget.endDate,
         ));
       }
       if (!mounted) return;

@@ -143,16 +143,38 @@ class TransactionExportService {
   /// [columns] 勾选要输出的列，必选列会被强制补齐。
   /// [columnOrder] 输出列的先后顺序（全列排布，通常来自 UI 的拖动排序）；不传则
   /// 回落 [ExportColumn] 枚举声明顺序。
+  /// [startDate] / [endDate] 是「整日」语义：起=当天 00:00，止=当天 24:00（含整天）。
+  /// 都为 null 时导全量，跟旧行为一致。
   Future<LedgerExportSheet> buildSheet(
     int ledgerId, {
     bool includeLedgerColumn = false,
     bool padTimeCell = true,
     Set<ExportColumn> columns = ExportColumn.defaultSelected,
     List<ExportColumn>? columnOrder,
+    DateTime? startDate,
+    DateTime? endDate,
     void Function(double progress)? onProgress,
   }) async {
-    final transactionsWithCategory =
-        await _repo.transactionsWithCategoryAll(ledgerId: ledgerId).first;
+    List<({Transaction t, Category? category, Account? account, Account? toAccount})>
+        transactionsWithCategory;
+    if (startDate == null && endDate == null) {
+      transactionsWithCategory =
+          await _repo.transactionsWithCategoryAll(ledgerId: ledgerId).first;
+    } else {
+      // 底层 InRange 的 end 是开区间：起=当天 00:00，止=次日 00:00（含止日整天）。
+      // 只设了一侧时，另一侧用 1970/9999 两个哨兵撑开，行为等同「不限」。
+      final start = startDate != null
+          ? DateTime(startDate.year, startDate.month, startDate.day)
+          : DateTime(1970, 1, 1);
+      final end = endDate != null
+          ? DateTime(endDate.year, endDate.month, endDate.day).add(const Duration(days: 1))
+          : DateTime(9999, 12, 31);
+      transactionsWithCategory = await _repo.getTransactionsWithCategoryInRange(
+        ledgerId: ledgerId,
+        start: start,
+        end: end,
+      );
+    }
     final total = transactionsWithCategory.length;
 
     final ledger = await _repo.getLedgerById(ledgerId);

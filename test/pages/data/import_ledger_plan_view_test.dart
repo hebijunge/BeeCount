@@ -38,6 +38,7 @@ void main() {
     List<Ledger>? existing,
     void Function(String? name, bool selected)? onSelectedGroupChanged,
     void Function(String name, String strategy)? onStrategyChanged,
+    Map<String, String> strategies = const {},
   }) async {
     await tester.binding.setSurfaceSize(const Size(393, 850));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -54,6 +55,9 @@ void main() {
           currentLedgerName: '日常',
           onSelectedGroupChanged: onSelectedGroupChanged,
           onStrategyChanged: onStrategyChanged,
+          strategyOf: strategies.isEmpty
+              ? null
+              : (name) => strategies[name],
         ),
         ),
       ),
@@ -186,6 +190,19 @@ void main() {
         of: segment, matching: find.text('新建账本')));
     await tester.pump();
     expect(calls, ['国宇=new']);
+
+    // 确认页会把选择回填给 strategyOf；重渲染后徽标必须改口「新建」。
+    await pump(
+      tester,
+      groups: const [(ledgerName: '国宇', count: 12)],
+      onStrategyChanged: (_, __) {},
+      strategies: const {'国宇': importStrategyNew},
+    );
+    expect(
+      find.descendant(of: rowOf('国宇'), matching: badge('new')),
+      findsOneWidget,
+      reason: '策略切到新建后徽标要跟着改口，不然写着并入实际建新本',
+    );
   });
 
   testWidgets('当前账本组没有策略可选——它永远进当前账本', (tester) async {

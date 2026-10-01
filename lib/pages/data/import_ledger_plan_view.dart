@@ -104,6 +104,10 @@ class ImportLedgerPlanView extends StatelessWidget {
     final showStrategy = name != null && onStrategyChanged != null;
     final currentStrategy =
         showStrategy ? (strategyOf?.call(name!) ?? importStrategyOverwrite) : importStrategyOverwrite;
+    // 选了「新建」策略后，这组落库时不再并入同名本——徽标得跟着说「新建」，
+    // 不然写着「并入已有账本」实际却建新本，比不标更误导。
+    final willCreate =
+        isNew || (showStrategy && currentStrategy == importStrategyNew);
     return Padding(
       key: ValueKey('import-ledger-plan-row-${name ?? '_current_'}'),
       padding: const EdgeInsets.only(bottom: 6),
@@ -139,18 +143,18 @@ class ImportLedgerPlanView extends StatelessWidget {
               _Badge(
                 text: name == null
                     ? l10n.importLedgerPlanCurrent
-                    : isNew
+                    : willCreate
                         ? l10n.importLedgerPlanNew
                         : l10n.importLedgerPlanMerge,
-                kind: name == null ? 'current' : (isNew ? 'new' : 'merge'),
+                kind: name == null ? 'current' : (willCreate ? 'new' : 'merge'),
                 background: name == null
                     ? Theme.of(context).colorScheme.surfaceContainerHighest
-                    : isNew
+                    : willCreate
                         ? Theme.of(context).colorScheme.tertiaryContainer
                         : Theme.of(context).colorScheme.secondaryContainer,
                 foreground: name == null
                     ? BeeTokens.textSecondary(context)
-                    : isNew
+                    : willCreate
                         ? Theme.of(context).colorScheme.onTertiaryContainer
                         : Theme.of(context).colorScheme.onSecondaryContainer,
               ),

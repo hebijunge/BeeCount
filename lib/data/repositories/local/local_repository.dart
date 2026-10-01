@@ -1006,6 +1006,11 @@ class LocalRepository extends BaseRepository {
       _transactionRepo.getLastTransactionByLedger(ledgerId);
 
   @override
+  Future<(DateTime? earliest, DateTime? latest)> getTransactionTimeRange(
+          List<int> ledgerIds) =>
+      _transactionRepo.getTransactionTimeRange(ledgerIds);
+
+  @override
   Future<DateTime?> getEarliestTransactionDate() =>
       _transactionRepo.getEarliestTransactionDate();
 

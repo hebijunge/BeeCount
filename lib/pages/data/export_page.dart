@@ -606,15 +606,22 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         );
       }
 
-      final now = DateTime.now();
+      // 没选时间段的那一侧，用这批账本实际最早/最晚一笔兜底，文件名即数据范围。
+      var startDay = _startDate;
+      var endDay = _endDate;
+      if (startDay == null || endDay == null) {
+        final (earliest, latest) =
+            await repo.getTransactionTimeRange(ledgerIds);
+        startDay ??= earliest;
+        endDay ??= latest;
+      }
       final baseName = buildExportFileName(
         ledgerNames: ledgerNames,
         allPeriodLabel: l10n.exportAllPeriod,
         fallbackLedgerName: l10n.exportFilenameLedgerFallback,
-        startDate: _startDate,
-        endDate: _endDate,
+        startDate: startDay,
+        endDate: endDay,
         extension: asExcel ? 'xlsx' : 'csv',
-        now: now,
       );
       final String path;
       if (asExcel) {

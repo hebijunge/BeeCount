@@ -2,35 +2,31 @@ import 'package:beecount/services/export/export_file_name.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final now = DateTime(2026, 10, 1, 13, 29, 2);
-
-  test('全量导出（时间段未设）出「全部」占位段', () {
+  test('两端日期都取到时就是 账本_开始_结束', () {
     expect(
       buildExportFileName(
-        ledgerNames: ['张三', '李四'],
+        ledgerNames: ['国宇', '华恒远', '国图'],
         allPeriodLabel: '全部',
         fallbackLedgerName: '账本',
-        startDate: null,
-        endDate: null,
+        startDate: DateTime(2026, 1, 5),
+        endDate: DateTime(2026, 9, 30),
         extension: 'xlsx',
-        now: now,
       ),
-      '张三_李四_全部_全部_20261001_132902.xlsx',
+      '国宇_华恒远_国图_20260105_20260930.xlsx',
     );
   });
 
-  test('带时间段的日期段为 yyyyMMdd', () {
+  test('取不到交易的那一侧才落到「全部」占位', () {
     expect(
       buildExportFileName(
         ledgerNames: ['张三'],
         allPeriodLabel: '全部',
         fallbackLedgerName: '账本',
-        startDate: DateTime(2026, 1, 5),
-        endDate: DateTime(2026, 9, 30),
+        startDate: null,
+        endDate: null,
         extension: 'csv',
-        now: now,
       ),
-      '张三_20260105_20260930_20261001_132902.csv',
+      '张三_全部_全部.csv',
     );
   });
 
@@ -40,12 +36,11 @@ void main() {
         ledgerNames: ['甲/乙:丙*', '  丁  '],
         allPeriodLabel: 'All',
         fallbackLedgerName: 'Ledger',
-        startDate: null,
-        endDate: null,
+        startDate: DateTime(2026, 1, 5),
+        endDate: DateTime(2026, 9, 30),
         extension: 'xlsx',
-        now: now,
       ),
-      '甲 乙 丙_丁_All_All_20261001_132902.xlsx',
+      '甲 乙 丙_丁_20260105_20260930.xlsx',
     );
   });
 
@@ -58,9 +53,8 @@ void main() {
         startDate: null,
         endDate: null,
         extension: 'xlsx',
-        now: now,
       ),
-      'Ledger_All_All_20261001_132902.xlsx',
+      'Ledger_All_All.xlsx',
     );
   });
 }

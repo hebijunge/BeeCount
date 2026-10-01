@@ -1,9 +1,9 @@
 import 'package:intl/intl.dart';
 
-/// 交易数据导出的文件命名：`账本1_账本2_开始_结束_年月日_时分秒.ext`。
+/// 交易数据导出的文件命名：`账本1_账本2_开始_结束.ext`。
 ///
-/// 时间段未设的一侧输出 [allPeriodLabel]（如「全部」）而不是省略，
-/// 保证位置语义稳定——看到倒数第二段是日期就知道那是哪一端。
+/// 开始/结束由调用方决定：用户选了时间段就用选的，没选的那一侧传这批账本
+/// 最早/最晚一笔的时间。真的取不到交易（空账本）时才落到 [allPeriodLabel]。
 String buildExportFileName({
   required List<String> ledgerNames,
   required String allPeriodLabel,
@@ -11,7 +11,6 @@ String buildExportFileName({
   DateTime? startDate,
   DateTime? endDate,
   required String extension,
-  required DateTime now,
 }) {
   String namePart(String name) {
     // 文件系统非法字符替换成空格，保持文件名跨平台可写。
@@ -27,7 +26,6 @@ String buildExportFileName({
     ledgerNames.map(namePart).join('_'),
     dayPart(startDate),
     dayPart(endDate),
-    DateFormat('yyyyMMdd_HHmmss').format(now),
   ];
   return '${parts.join('_')}.$extension';
 }

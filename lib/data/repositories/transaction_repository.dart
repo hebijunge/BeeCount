@@ -335,6 +335,11 @@ abstract class TransactionRepository {
   /// 获取账本的末笔交易（按时间排序）
   Future<Transaction?> getLastTransactionByLedger(int ledgerId);
 
+  /// 这批账本合起来的最早 / 最晚一笔交易发生时间（跨账本聚合，供导出文件命名用）。
+  /// 这些账本都没有交易时对应一侧返回 null。
+  Future<(DateTime? earliest, DateTime? latest)> getTransactionTimeRange(
+      List<int> ledgerIds);
+
   /// 全局最早一笔交易的发生时间（不限账本，用于净值趋势「全部」范围的起点）。无交易返回 null。
   Future<DateTime?> getEarliestTransactionDate();
 

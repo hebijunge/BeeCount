@@ -1025,6 +1025,25 @@ class LocalTransactionRepository implements TransactionRepository {
   }
 
   @override
+  Future<(DateTime? earliest, DateTime? latest)> getTransactionTimeRange(
+      List<int> ledgerIds) async {
+    if (ledgerIds.isEmpty) return (null, null);
+    Future<DateTime?> edge(d.OrderingMode mode) async {
+      final row = await (db.select(db.transactions)
+            ..where((t) => t.ledgerId.isIn(ledgerIds))
+            ..orderBy([
+              (t) =>
+                  d.OrderingTerm(expression: t.happenedAt, mode: mode)
+            ])
+            ..limit(1))
+          .getSingleOrNull();
+      return row?.happenedAt;
+    }
+
+    return (await edge(d.OrderingMode.asc), await edge(d.OrderingMode.desc));
+  }
+
+  @override
   Future<DateTime?> getEarliestTransactionDate() async {
     // 排除以成员身份加入的共享账本(is_shared=1 且 my_role!='owner')——与资产统计 /
     // getAccountDailyBalances 同口径(#333),否则趋势「全部」起点会被别人账本的

@@ -1856,6 +1856,24 @@ abstract class AppLocalizations {
   /// **'Goes to current ledger'**
   String get importLedgerPlanCurrent;
 
+  /// No description provided for @importStrategyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Write strategy'**
+  String get importStrategyLabel;
+
+  /// No description provided for @importStrategyMerge.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into existing'**
+  String get importStrategyMerge;
+
+  /// No description provided for @importStrategyNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new ledger'**
+  String get importStrategyNew;
+
   /// No description provided for @importCategoryNotSelected.
   ///
   /// In en, this message translates to:
@@ -5522,6 +5540,18 @@ abstract class AppLocalizations {
   /// **'All ledgers'**
   String get exportAllLedgers;
 
+  /// No description provided for @exportLedgerSelectFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick'**
+  String get exportLedgerSelectFree;
+
+  /// No description provided for @exportLedgerDeselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect'**
+  String get exportLedgerDeselectAll;
+
   /// No description provided for @exportNoLedgerSelected.
   ///
   /// In en, this message translates to:
@@ -5576,6 +5606,30 @@ abstract class AppLocalizations {
   /// **'Balance'**
   String get exportSummaryColBalance;
 
+  /// No description provided for @exportSummaryTotalRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get exportSummaryTotalRow;
+
+  /// No description provided for @exportSelectAllColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all columns'**
+  String get exportSelectAllColumns;
+
+  /// No description provided for @exportDeselectColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get exportDeselectColumns;
+
+  /// No description provided for @exportSummaryColumnsReorderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press and drag to reorder; a total row is added automatically.'**
+  String get exportSummaryColumnsReorderHint;
+
   /// No description provided for @exportPreviewTitle.
   ///
   /// In en, this message translates to:
@@ -5591,8 +5645,8 @@ abstract class AppLocalizations {
   /// No description provided for @exportPreviewRowCount.
   ///
   /// In en, this message translates to:
-  /// **'{total} rows'**
-  String exportPreviewRowCount(Object total);
+  /// **'{total} rows · total {amount}'**
+  String exportPreviewRowCount(int total, String amount);
 
   /// No description provided for @exportPreviewEmptyLedger.
   ///

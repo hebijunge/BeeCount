@@ -1048,6 +1048,9 @@
   "importLedgerPlanMerge": "并入已有账本",
   "importLedgerPlanNew": "新建账本",
   "importLedgerPlanCurrent": "记入当前账本",
+  "importStrategyLabel": "写入策略",
+  "importStrategyMerge": "并入已有",
+  "importStrategyNew": "新建账本",
   "importCategoryNotSelected": "未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。",
   "importCategoryMappingDescription": "请将左侧\"源分类名\"映射到系统内已有分类（或保持原名自动创建/合并）",
   "importKeepOriginalName": "保持原名（自动创建/合并）",
@@ -1173,6 +1176,8 @@
   "exportFormatCsvHint": "多个账本合并成一张表，用「账本」列区分",
   "exportLedgersLabel": "导出账本",
   "exportAllLedgers": "全部账本",
+  "exportLedgerSelectFree": "点选",
+  "exportLedgerDeselectAll": "取消",
   "exportNoLedgerSelected": "请至少选择一个账本",
   "exportColumnsLabel": "导出列",
   "exportColumnsHint": "金额列始终包含。不勾「类型」时，回导会按支出处理；不勾分类、账户等列，这些信息就不会写进文件。",
@@ -1182,9 +1187,23 @@
   "exportSummaryColIncome": "收入",
   "exportSummaryColExpense": "支出",
   "exportSummaryColBalance": "结余",
+  "exportSummaryTotalRow": "合计",
+  "exportSelectAllColumns": "全选列",
+  "exportDeselectColumns": "取消全选",
+  "exportSummaryColumnsReorderHint": "长按并拖动可调整汇总列顺序，末行自动出合计。",
   "exportPreviewTitle": "导出预览",
   "exportPreviewConfirm": "确认导出",
-  "exportPreviewRowCount": "共 {total} 笔",
+  "exportPreviewRowCount": "共 {total} 笔 · 总额 {amount}",
+  "@exportPreviewRowCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "exportPreviewEmptyLedger": "该账本暂无交易",
   "exportShareText": "BeeCount 导出文件",
   "exportSuccessTitle": "导出成功",

@@ -966,6 +966,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importLedgerPlanCurrent => '현재 가계부에 기록';
 
   @override
+  String get importStrategyLabel => '기록 방식';
+
+  @override
+  String get importStrategyMerge => '기존에 병합';
+
+  @override
+  String get importStrategyNew => '새 가계부 생성';
+
+  @override
   String get importCategoryNotSelected => '카테고리가 선택되지 않았습니다';
 
   @override
@@ -2899,6 +2908,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportAllLedgers => '모든 가계부';
 
   @override
+  String get exportLedgerSelectFree => '직접 선택';
+
+  @override
+  String get exportLedgerDeselectAll => '해제';
+
+  @override
   String get exportNoLedgerSelected => '가계부를 하나 이상 선택하세요';
 
   @override
@@ -2926,14 +2941,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportSummaryColBalance => '잔액';
 
   @override
+  String get exportSummaryTotalRow => '합계';
+
+  @override
+  String get exportSelectAllColumns => '모든 열 선택';
+
+  @override
+  String get exportDeselectColumns => '모두 해제';
+
+  @override
+  String get exportSummaryColumnsReorderHint => '길게 누른 뒤 드래그하여 순서를 바꿀 수 있습니다. 합계 행은 자동으로 추가됩니다.';
+
+  @override
   String get exportPreviewTitle => '내보내기 미리보기';
 
   @override
   String get exportPreviewConfirm => '내보내기 확인';
 
   @override
-  String exportPreviewRowCount(Object total) {
-    return '총 $total건';
+  String exportPreviewRowCount(int total, String amount) {
+    return '총 $total건 · 합계 $amount';
   }
 
   @override

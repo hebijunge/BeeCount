@@ -966,6 +966,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importLedgerPlanCurrent => 'Goes to current ledger';
 
   @override
+  String get importStrategyLabel => 'Write strategy';
+
+  @override
+  String get importStrategyMerge => 'Merge into existing';
+
+  @override
+  String get importStrategyNew => 'Create new ledger';
+
+  @override
   String get importCategoryNotSelected => 'Category not selected';
 
   @override
@@ -2899,6 +2908,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportAllLedgers => 'All ledgers';
 
   @override
+  String get exportLedgerSelectFree => 'Pick';
+
+  @override
+  String get exportLedgerDeselectAll => 'Deselect';
+
+  @override
   String get exportNoLedgerSelected => 'Select at least one ledger to export';
 
   @override
@@ -2926,14 +2941,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportSummaryColBalance => 'Balance';
 
   @override
+  String get exportSummaryTotalRow => 'Total';
+
+  @override
+  String get exportSelectAllColumns => 'Select all columns';
+
+  @override
+  String get exportDeselectColumns => 'Deselect all';
+
+  @override
+  String get exportSummaryColumnsReorderHint => 'Long-press and drag to reorder; a total row is added automatically.';
+
+  @override
   String get exportPreviewTitle => 'Export preview';
 
   @override
   String get exportPreviewConfirm => 'Export';
 
   @override
-  String exportPreviewRowCount(Object total) {
-    return '$total rows';
+  String exportPreviewRowCount(int total, String amount) {
+    return '$total rows · total $amount';
   }
 
   @override

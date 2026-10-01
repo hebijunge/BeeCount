@@ -966,6 +966,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importLedgerPlanCurrent => '记入当前账本';
 
   @override
+  String get importStrategyLabel => '写入策略';
+
+  @override
+  String get importStrategyMerge => '并入已有';
+
+  @override
+  String get importStrategyNew => '新建账本';
+
+  @override
   String get importCategoryNotSelected => '未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。';
 
   @override
@@ -2899,6 +2908,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportAllLedgers => '全部账本';
 
   @override
+  String get exportLedgerSelectFree => '点选';
+
+  @override
+  String get exportLedgerDeselectAll => '取消';
+
+  @override
   String get exportNoLedgerSelected => '请至少选择一个账本';
 
   @override
@@ -2926,14 +2941,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportSummaryColBalance => '结余';
 
   @override
+  String get exportSummaryTotalRow => '合计';
+
+  @override
+  String get exportSelectAllColumns => '全选列';
+
+  @override
+  String get exportDeselectColumns => '取消全选';
+
+  @override
+  String get exportSummaryColumnsReorderHint => '长按并拖动可调整汇总列顺序，末行自动出合计。';
+
+  @override
   String get exportPreviewTitle => '导出预览';
 
   @override
   String get exportPreviewConfirm => '确认导出';
 
   @override
-  String exportPreviewRowCount(Object total) {
-    return '共 $total 笔';
+  String exportPreviewRowCount(int total, String amount) {
+    return '共 $total 笔 · 总额 $amount';
   }
 
   @override
@@ -9033,6 +9060,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get importLedgerPlanCurrent => '記入目前帳本';
 
   @override
+  String get importStrategyLabel => '寫入策略';
+
+  @override
+  String get importStrategyMerge => '併入既有';
+
+  @override
+  String get importStrategyNew => '新建帳本';
+
+  @override
   String get importCategoryNotSelected => '未選擇\"分類\"列，請點擊\"上一步\"返回並設定\"分類\"的列，再繼續。';
 
   @override
@@ -10966,6 +11002,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exportAllLedgers => '全部帳本';
 
   @override
+  String get exportLedgerSelectFree => '點選';
+
+  @override
+  String get exportLedgerDeselectAll => '取消';
+
+  @override
   String get exportNoLedgerSelected => '請至少選擇一個帳本';
 
   @override
@@ -10993,14 +11035,26 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exportSummaryColBalance => '結餘';
 
   @override
+  String get exportSummaryTotalRow => '合計';
+
+  @override
+  String get exportSelectAllColumns => '全選欄';
+
+  @override
+  String get exportDeselectColumns => '取消全選';
+
+  @override
+  String get exportSummaryColumnsReorderHint => '長按並拖動可調整匯總欄順序，末行自動出合計。';
+
+  @override
   String get exportPreviewTitle => '匯出預覽';
 
   @override
   String get exportPreviewConfirm => '確認匯出';
 
   @override
-  String exportPreviewRowCount(Object total) {
-    return '共 $total 筆';
+  String exportPreviewRowCount(int total, String amount) {
+    return '共 $total 筆 · 總額 $amount';
   }
 
   @override

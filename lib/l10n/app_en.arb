@@ -450,6 +450,9 @@
   "importLedgerPlanMerge": "Merges into existing",
   "importLedgerPlanNew": "New ledger",
   "importLedgerPlanCurrent": "Goes to current ledger",
+  "importStrategyLabel": "Write strategy",
+  "importStrategyMerge": "Merge into existing",
+  "importStrategyNew": "Create new ledger",
   "importCategoryNotSelected": "Category not selected",
   "importCategoryMappingDescription": "Please select corresponding local categories for each category name:",
   "importKeepOriginalName": "Keep original name",
@@ -1153,6 +1156,8 @@
   "exportFormatCsvHint": "All ledgers in one sheet, with a Ledger column",
   "exportLedgersLabel": "Ledgers",
   "exportAllLedgers": "All ledgers",
+  "exportLedgerSelectFree": "Pick",
+  "exportLedgerDeselectAll": "Deselect",
   "exportNoLedgerSelected": "Select at least one ledger to export",
   "exportColumnsLabel": "Columns",
   "exportColumnsHint": "Amount is always included. Without the type column, re-imports treat rows as expenses; leaving out category or account columns drops that data from the file.",
@@ -1162,9 +1167,23 @@
   "exportSummaryColIncome": "Income",
   "exportSummaryColExpense": "Expense",
   "exportSummaryColBalance": "Balance",
+  "exportSummaryTotalRow": "Total",
+  "exportSelectAllColumns": "Select all columns",
+  "exportDeselectColumns": "Deselect all",
+  "exportSummaryColumnsReorderHint": "Long-press and drag to reorder; a total row is added automatically.",
   "exportPreviewTitle": "Export preview",
   "exportPreviewConfirm": "Export",
-  "exportPreviewRowCount": "{total} rows",
+  "exportPreviewRowCount": "{total} rows · total {amount}",
+  "@exportPreviewRowCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "exportPreviewEmptyLedger": "No transactions in this ledger",
   "exportShareText": "BeeCount Export File",
   "exportSuccessTitle": "Export Successful",

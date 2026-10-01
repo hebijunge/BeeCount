@@ -2970,6 +2970,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportShareText => 'BeeCount 导出文件';
 
   @override
+  String get exportOpenButton => '打开';
+
+  @override
+  String get exportShareButton => '分享';
+
+  @override
+  String get exportAllPeriod => '全部';
+
+  @override
+  String get exportFilenameLedgerFallback => '账本';
+
+  @override
+  String get exportOpenFailedTitle => '无法打开';
+
+  @override
+  String get exportOpenFailedMessage => '没找到能打开该文件的应用，可以改用「分享」发到其它设备查看';
+
+  @override
   String get exportSuccessTitle => '导出成功';
 
   @override
@@ -11062,6 +11080,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportShareText => 'BeeCount 匯出檔案';
+
+  @override
+  String get exportOpenButton => '開啟';
+
+  @override
+  String get exportShareButton => '分享';
+
+  @override
+  String get exportAllPeriod => '全部';
+
+  @override
+  String get exportFilenameLedgerFallback => '帳本';
+
+  @override
+  String get exportOpenFailedTitle => '無法開啟';
+
+  @override
+  String get exportOpenFailedMessage => '找不到能開啟該檔案的應用，可以改用「分享」傳到其它裝置查看';
 
   @override
   String get exportSuccessTitle => '匯出成功';

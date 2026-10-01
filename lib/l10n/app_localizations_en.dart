@@ -2970,6 +2970,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportShareText => 'BeeCount Export File';
 
   @override
+  String get exportOpenButton => 'Open';
+
+  @override
+  String get exportShareButton => 'Share';
+
+  @override
+  String get exportAllPeriod => 'All';
+
+  @override
+  String get exportFilenameLedgerFallback => 'Ledger';
+
+  @override
+  String get exportOpenFailedTitle => 'Can\'t Open';
+
+  @override
+  String get exportOpenFailedMessage => 'No app on this device can open this file. Use \"Share\" to send it elsewhere instead.';
+
+  @override
   String get exportSuccessTitle => 'Export Successful';
 
   @override

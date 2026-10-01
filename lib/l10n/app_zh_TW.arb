@@ -1262,6 +1262,12 @@
     }
   },
   "exportShareText": "BeeCount 匯出檔案",
+  "exportOpenButton": "開啟",
+  "exportShareButton": "分享",
+  "exportAllPeriod": "全部",
+  "exportFilenameLedgerFallback": "帳本",
+  "exportOpenFailedTitle": "無法開啟",
+  "exportOpenFailedMessage": "找不到能開啟該檔案的應用，可以改用「分享」傳到其它裝置查看",
   "exportSuccessMessageAndroid": "已儲存到：\n{path}",
   "@exportSuccessMessageAndroid": {
     "placeholders": {

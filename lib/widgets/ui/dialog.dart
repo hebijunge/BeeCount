@@ -47,6 +47,8 @@ class AppDialog {
     required String message,
     String? okLabel,
     VoidCallback? onOk,
+    /// 在「好」按钮左侧追加的次级按钮（如「打开」「分享」），点击不关闭弹窗。
+    List<({String label, VoidCallback onTap})>? extraActions,
   }) {
     final l10n = AppLocalizations.of(context);
     okLabel ??= l10n.commonOk;
@@ -55,6 +57,8 @@ class AppDialog {
       title: title,
       message: message,
       actions: [
+        for (final e in extraActions ?? const <({String label, VoidCallback onTap})>[])
+          (label: e.label, onTap: e.onTap, primary: false),
         (
           label: okLabel,
           onTap: () {

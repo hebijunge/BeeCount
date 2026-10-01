@@ -3,16 +3,18 @@ import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/db.dart';
 import '../../data/repositories/base_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../../services/export/export_file_name.dart';
 import '../../services/export/transaction_export_service.dart';
 import '../../services/export/xlsx_workbook_writer.dart';
 import '../../widgets/ui/ui.dart';
@@ -113,6 +115,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     final l10n = AppLocalizations.of(context);
     final selected = _effectiveSelection(ledgers, currentLedgerId);
     final ordered = _orderedIds(ledgers, selected);
+    final orderedLedgers = ledgers.where((l) => selected.contains(l.id)).toList();
 
     return Scaffold(
       body: Column(
@@ -257,7 +260,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 FilledButton.icon(
                   onPressed: exporting || ordered.isEmpty
                       ? null
-                      : () => _openPreview(repo, ordered),
+                      : () => _openPreview(repo, orderedLedgers),
                   icon: const Icon(Icons.save_alt_outlined),
                   label: Text(Platform.isIOS
                       ? l10n.exportButtonIOS
@@ -515,18 +518,19 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   ///
   /// 预览展示的是完整真实数据，但落盘仍走 _export 重新取数 —— 预览只是给人看的同一
   /// 份算法产物，不直接拿来写文件。
-  Future<void> _openPreview(BaseRepository repo, List<int> ledgerIds) async {
+  Future<void> _openPreview(BaseRepository repo, List<Ledger> exportLedgers) async {
     final confirmed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ExportPreviewPage(
           repository: repo,
-          ledgerIds: ledgerIds,
+          ledgerIds: exportLedgers.map((l) => l.id).toList(),
           asExcel: _format == ExportFormat.excel,
           columns: {..._columns},
           columnOrder: List.of(_columnOrder),
           startDate: _startDate,
           endDate: _endDate,
-          withSummarySheet: _withSummarySheet(ledgerIds),
+          withSummarySheet: _withSummarySheet(
+              exportLedgers.map((l) => l.id).toList()),
           baseCurrency: ref.read(baseCurrencyProvider),
           summaryColumns: {..._summaryColumns},
           summaryColumnOrder: List.of(_summaryColumnOrder),
@@ -534,7 +538,11 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       ),
     );
     if (confirmed != true) return;
-    await _export(repo, ledgerIds);
+    await _export(
+      repo,
+      exportLedgers.map((l) => l.id).toList(),
+      exportLedgers.map((l) => l.name).toList(),
+    );
   }
 
   /// 汇总 sheet 只在「Excel + 多账本」时出：CSV 是一张合并表，没有 sheet 可以隔开
@@ -542,7 +550,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   bool _withSummarySheet(List<int> ledgerIds) =>
       _format == ExportFormat.excel && ledgerIds.length > 1;
 
-  Future<void> _export(BaseRepository repo, List<int> ledgerIds) async {
+  Future<void> _export(
+      BaseRepository repo, List<int> ledgerIds, List<String> ledgerNames) async {
     try {
       setState(() {
         exporting = true;
@@ -597,11 +606,20 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         );
       }
 
-      final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final now = DateTime.now();
+      final baseName = buildExportFileName(
+        ledgerNames: ledgerNames,
+        allPeriodLabel: l10n.exportAllPeriod,
+        fallbackLedgerName: l10n.exportFilenameLedgerFallback,
+        startDate: _startDate,
+        endDate: _endDate,
+        extension: asExcel ? 'xlsx' : 'csv',
+        now: now,
+      );
       final String path;
       if (asExcel) {
         final bytes = await buildWorkbookBytes(sheets);
-        path = p.join(directory, 'beecount_$ts.xlsx');
+        path = p.join(directory, baseName);
         await File(path).writeAsBytes(bytes);
       } else {
         // 第一个账本提供表头，其余只追加数据行，避免一张表里出现多次表头。
@@ -612,7 +630,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
               : sheet.rows.skip(1));
         }
         final csvStr = const ListToCsvConverter(eol: '\n').convert(rows);
-        path = p.join(directory, 'beecount_$ts.csv');
+        path = p.join(directory, baseName);
         // UTF-8 BOM 让 Excel 正确识别中文编码。
         final utf8Bom = String.fromCharCode(0xFEFF);
         await File(path)
@@ -629,14 +647,23 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       if (shareAfter) {
         await Share.shareXFiles([XFile(path)], text: l10n.exportShareText);
         if (!mounted) return;
-        await AppDialog.info(context,
-            title: l10n.exportSuccessTitle,
-            message: l10n.exportSuccessMessageIOS(path));
-      } else {
-        await AppDialog.info(context,
-            title: l10n.exportSuccessTitle,
-            message: l10n.exportSuccessMessageAndroid(path));
       }
+
+      await AppDialog.info(
+        context,
+        title: l10n.exportSuccessTitle,
+        message: shareAfter
+            ? l10n.exportSuccessMessageIOS(path)
+            : l10n.exportSuccessMessageAndroid(path),
+        extraActions: [
+          (label: l10n.exportOpenButton, onTap: () => _openExportedFile(path)),
+          (
+            label: l10n.exportShareButton,
+            onTap: () =>
+                Share.shareXFiles([XFile(path)], text: l10n.exportShareText),
+          ),
+        ],
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => exporting = false);
@@ -644,6 +671,27 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       await AppDialog.error(context,
           title: l10nError.exportFailedTitle, message: e.toString());
     }
+  }
+
+  /// 「打开」按钮：用系统里已装的表格/办公应用打开刚导出的文件；
+  /// 没有能处理该 MIME 的应用时弹错误提示，引导改用「分享」。
+  Future<void> _openExportedFile(String path) async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final result = await OpenFilex.open(
+        path,
+        type: _format == ExportFormat.excel
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv',
+      );
+      if (result.type == ResultType.done) return;
+    } on PlatformException {
+      // 打开失败落到下面统一提示。
+    }
+    if (!mounted) return;
+    await AppDialog.error(context,
+        title: l10n.exportOpenFailedTitle,
+        message: l10n.exportOpenFailedMessage);
   }
 
   /// iOS 写文档目录后走分享面板；Android 直接落到公共 Download/BeeCount。

@@ -2970,6 +2970,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportShareText => 'BeeCount 내보내기 파일';
 
   @override
+  String get exportOpenButton => '열기';
+
+  @override
+  String get exportShareButton => '공유';
+
+  @override
+  String get exportAllPeriod => '전체';
+
+  @override
+  String get exportFilenameLedgerFallback => '장부';
+
+  @override
+  String get exportOpenFailedTitle => '열 수 없음';
+
+  @override
+  String get exportOpenFailedMessage => '이 파일을 열 수 있는 앱이 없습니다. 대신 \'공유\'를 사용해 다른 기기로 보내 보세요.';
+
+  @override
   String get exportSuccessTitle => '내보내기 성공';
 
   @override

@@ -5660,6 +5660,42 @@ abstract class AppLocalizations {
   /// **'BeeCount Export File'**
   String get exportShareText;
 
+  /// No description provided for @exportOpenButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get exportOpenButton;
+
+  /// No description provided for @exportShareButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get exportShareButton;
+
+  /// No description provided for @exportAllPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get exportAllPeriod;
+
+  /// No description provided for @exportFilenameLedgerFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get exportFilenameLedgerFallback;
+
+  /// No description provided for @exportOpenFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t Open'**
+  String get exportOpenFailedTitle;
+
+  /// No description provided for @exportOpenFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No app on this device can open this file. Use \"Share\" to send it elsewhere instead.'**
+  String get exportOpenFailedMessage;
+
   /// No description provided for @exportSuccessTitle.
   ///
   /// In en, this message translates to:

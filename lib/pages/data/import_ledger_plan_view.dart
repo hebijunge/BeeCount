@@ -107,77 +107,97 @@ class ImportLedgerPlanView extends StatelessWidget {
     return Padding(
       key: ValueKey('import-ledger-plan-row-${name ?? '_current_'}'),
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(
-            key: ValueKey('import-ledger-plan-select-$groupKey'),
-            value: isSelected,
-            onChanged: onSelectedGroupChanged != null
-                ? (v) => onSelectedGroupChanged!(name, v ?? false)
-                : null,
-          ),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '${group.count}',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: BeeTokens.textTertiary(context)),
-          ),
-          const SizedBox(width: 8),
-          if (showStrategy) ...[
-            _Badge(
-              text: l10n.importStrategyLabel,
-              kind: 'strategy',
-              background: Theme.of(context).colorScheme.surfaceContainerHighest,
-              foreground: BeeTokens.textSecondary(context),
-            ),
-            const SizedBox(width: 4),
-            SegmentedButton<String>(
-              key: ValueKey('import-ledger-plan-strategy-$groupKey'),
-              segments: [
-                ButtonSegment(
-                  value: importStrategyOverwrite,
-                  label: Text(l10n.importStrategyMerge),
-                ),
-                ButtonSegment(
-                  value: importStrategyNew,
-                  label: Text(l10n.importStrategyNew),
-                ),
-              ],
-              selected: {currentStrategy},
-              onSelectionChanged: (s) => onStrategyChanged!(name!, s.first),
-              style: ButtonStyle(
-                visualDensity: VisualDensity.compact,
-                textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 12)),
+          Row(
+            children: [
+              Checkbox(
+                key: ValueKey('import-ledger-plan-select-$groupKey'),
+                value: isSelected,
+                onChanged: onSelectedGroupChanged != null
+                    ? (v) => onSelectedGroupChanged!(name, v ?? false)
+                    : null,
               ),
-            ),
-          ] else
-            _Badge(
-              text: name == null
-                  ? l10n.importLedgerPlanCurrent
-                  : isNew
-                      ? l10n.importLedgerPlanNew
-                      : l10n.importLedgerPlanMerge,
-              kind: name == null ? 'current' : (isNew ? 'new' : 'merge'),
-              background: name == null
-                  ? Theme.of(context).colorScheme.surfaceContainerHighest
-                  : isNew
-                      ? Theme.of(context).colorScheme.tertiaryContainer
-                      : Theme.of(context).colorScheme.secondaryContainer,
-              foreground: name == null
-                  ? BeeTokens.textSecondary(context)
-                  : isNew
-                      ? Theme.of(context).colorScheme.onTertiaryContainer
-                      : Theme.of(context).colorScheme.onSecondaryContainer,
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${group.count}',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: BeeTokens.textTertiary(context)),
+              ),
+              const SizedBox(width: 8),
+              _Badge(
+                text: name == null
+                    ? l10n.importLedgerPlanCurrent
+                    : isNew
+                        ? l10n.importLedgerPlanNew
+                        : l10n.importLedgerPlanMerge,
+                kind: name == null ? 'current' : (isNew ? 'new' : 'merge'),
+                background: name == null
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                    : isNew
+                        ? Theme.of(context).colorScheme.tertiaryContainer
+                        : Theme.of(context).colorScheme.secondaryContainer,
+                foreground: name == null
+                    ? BeeTokens.textSecondary(context)
+                    : isNew
+                        ? Theme.of(context).colorScheme.onTertiaryContainer
+                        : Theme.of(context).colorScheme.onSecondaryContainer,
+              ),
+            ],
+          ),
+          // 策略单独一行：大字号下 SegmentedButton 的固有宽度会把第一行的账本名
+          // 挤成 0 宽（真机实测），名字看不见就没法核对去向，宁可多占一行。
+          if (showStrategy)
+            Padding(
+              padding: const EdgeInsets.only(left: 40, top: 2),
+              child: Row(
+                children: [
+                  _Badge(
+                    text: l10n.importStrategyLabel,
+                    kind: 'strategy',
+                    background:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    foreground: BeeTokens.textSecondary(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: SegmentedButton<String>(
+                        key: ValueKey('import-ledger-plan-strategy-$groupKey'),
+                        segments: [
+                          ButtonSegment(
+                            value: importStrategyOverwrite,
+                            label: Text(l10n.importStrategyMerge),
+                          ),
+                          ButtonSegment(
+                            value: importStrategyNew,
+                            label: Text(l10n.importStrategyNew),
+                          ),
+                        ],
+                        selected: {currentStrategy},
+                        onSelectionChanged: (s) =>
+                            onStrategyChanged!(name!, s.first),
+                        style: const ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),

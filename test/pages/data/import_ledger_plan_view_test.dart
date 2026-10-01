@@ -39,19 +39,22 @@ void main() {
     void Function(String? name, bool selected)? onSelectedGroupChanged,
     void Function(String name, String strategy)? onStrategyChanged,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(411, 900));
+    await tester.binding.setSurfaceSize(const Size(393, 850));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('zh'),
-      home: Scaffold(
-        body: ImportLedgerPlanView(
+      home: MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+        child: Scaffold(
+          body: ImportLedgerPlanView(
           groups: groups,
           ledgers: existing ?? ledgers,
           currentLedgerName: '日常',
           onSelectedGroupChanged: onSelectedGroupChanged,
           onStrategyChanged: onStrategyChanged,
+        ),
         ),
       ),
     ));

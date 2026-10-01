@@ -60,4 +60,41 @@ void main() {
 
     await db.close();
   });
+
+  testWidgets('右上角除了笔数还给出总额（净额，主币种）', (tester) async {
+    final db = BeeDatabase.forTesting(NativeDatabase.memory());
+    final repo = LocalRepository(db);
+    final ledgerId = await repo.createLedger(name: '默认账本');
+    await repo.addTransaction(
+        ledgerId: ledgerId, type: 'expense', amount: 100, happenedAt: DateTime(2026, 9, 1, 12));
+    await repo.addTransaction(
+        ledgerId: ledgerId, type: 'income', amount: 250, happenedAt: DateTime(2026, 9, 2, 9));
+
+    await tester.binding.setSurfaceSize(const Size(1000, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: ExportPreviewPage(
+            repository: repo,
+            ledgerIds: [ledgerId],
+            asExcel: true,
+            columns: ExportColumn.defaultSelected,
+            columnOrder: ExportColumn.defaultOrder,
+          ),
+        ),
+      ));
+      await tester.pump();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await tester.pump();
+
+      expect(find.text('共 2 笔 · 总额 150.00 CNY'), findsOneWidget,
+          reason: '总额=收入-支出净额，跟汇总 sheet 同一口径');
+    });
+    await db.close();
+  });
 }

@@ -27,6 +27,8 @@ class ExportPreviewPage extends StatefulWidget {
     this.endDate,
     this.withSummarySheet = false,
     this.baseCurrency = 'CNY',
+    this.summaryColumns,
+    this.summaryColumnOrder,
   });
 
   final BaseRepository repository;
@@ -43,6 +45,10 @@ class ExportPreviewPage extends StatefulWidget {
   /// 预览与落盘必须同一条件，否则预览看到的和文件里的不是一回事。
   final bool withSummarySheet;
   final String baseCurrency;
+
+  /// 汇总 sheet 的列勾选/排序（null = 出全列，旧行为）。
+  final Set<SummaryColumn>? summaryColumns;
+  final List<SummaryColumn>? summaryColumnOrder;
 
   @override
   State<ExportPreviewPage> createState() => _ExportPreviewPageState();
@@ -92,6 +98,8 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
             l10n,
             sheets,
             currencyCode: widget.baseCurrency,
+            summaryColumns: widget.summaryColumns,
+            summaryOrder: widget.summaryColumnOrder,
           ),
         );
       }
@@ -117,7 +125,11 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
                 ? Center(child: Text(_error!))
                 : sheets == null
                     ? const Center(child: CircularProgressIndicator())
-                    : _PreviewBody(sheets: sheets, asExcel: widget.asExcel),
+                    : _PreviewBody(
+                    sheets: sheets,
+                    asExcel: widget.asExcel,
+                    baseCurrency: widget.baseCurrency,
+                  ),
           ),
           SafeArea(
             top: false,
@@ -141,18 +153,29 @@ class _ExportPreviewPageState extends State<ExportPreviewPage> {
 }
 
 class _PreviewBody extends StatelessWidget {
-  const _PreviewBody({required this.sheets, required this.asExcel});
+  const _PreviewBody({
+    required this.sheets,
+    required this.asExcel,
+    required this.baseCurrency,
+  });
 
   final List<LedgerExportSheet> sheets;
   final bool asExcel;
+  final String baseCurrency;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     // 汇总 sheet 的行不是交易，「共 N 笔」只数各账本自己的数据行。
-    final totalAll = sheets
-        .where((sheet) => sheet.ledgerId != summarySheetLedgerId)
-        .fold<int>(0, (sum, sheet) => sum + sheet.dataRowCount);
+    final ledgerSheets =
+        sheets.where((sheet) => sheet.ledgerId != summarySheetLedgerId);
+    final totalAll =
+        ledgerSheets.fold<int>(0, (sum, sheet) => sum + sheet.dataRowCount);
+    // 金额都是主币种折算后的 nativeAmount 合计（收入-支出=净额），跟汇总 sheet 同源。
+    final net = ledgerSheets
+        .fold<double>(0, (sum, s) => sum + s.income - s.expense);
+    final totalAmount =
+        '${net.toStringAsFixed(2)} ${baseCurrency.toUpperCase()}';
 
     // CSV 落盘是「第一份提供表头，其余只追加数据行」，预览必须照同样规则合并，
     // 否则用户看到的行数和文件里的不是一回事。
@@ -184,7 +207,7 @@ class _PreviewBody extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                l10n.exportPreviewRowCount(totalAll),
+                l10n.exportPreviewRowCount(totalAll, totalAmount),
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall

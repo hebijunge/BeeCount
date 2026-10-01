@@ -123,6 +123,71 @@ class LedgerExportSheet {
 /// 汇总 sheet 不对应任何账本，用这个哨兵 id 标注（sheet 名取「汇总」文案）。
 const int summarySheetLedgerId = -1;
 
+/// 汇总 sheet 可勾选的列。默认勾「账本 / 笔数 / 支出」：核对账最常用的是"哪本、几笔、花了多少"，
+/// 收入与结余（结余=收入-支出可自算）默认收起来，需要时再勾。
+enum SummaryColumn {
+  ledger,
+  count,
+  income,
+  expense,
+  balance;
+
+  static const Set<SummaryColumn> defaultSelected = {ledger, count, expense};
+
+  static const List<SummaryColumn> defaultOrder = [
+    ledger,
+    count,
+    income,
+    expense,
+    balance,
+  ];
+
+  /// 账本是每行的标识，缺了它汇总表无法对账，所以不给取消。
+  bool get isRequired => this == SummaryColumn.ledger;
+
+  String headerText(AppLocalizations l10n) => switch (this) {
+        SummaryColumn.ledger => l10n.exportCsvHeaderLedger,
+        SummaryColumn.count => l10n.exportSummaryColCount,
+        SummaryColumn.income => l10n.exportSummaryColIncome,
+        SummaryColumn.expense => l10n.exportSummaryColExpense,
+        SummaryColumn.balance => l10n.exportSummaryColBalance,
+      };
+
+  /// 汇总「合计」行的取值：账本列写 [totalLabel]，其余列求和。
+  String totalValue(
+    String totalLabel, {
+    required int totalRows,
+    required double totalIncome,
+    required double totalExpense,
+  }) {
+    final two = (double v) => v.toStringAsFixed(2);
+    return switch (this) {
+      SummaryColumn.ledger => totalLabel,
+      SummaryColumn.count => totalRows.toString(),
+      SummaryColumn.income => two(totalIncome),
+      SummaryColumn.expense => two(totalExpense),
+      SummaryColumn.balance => two(totalIncome - totalExpense),
+    };
+  }
+}
+
+extension SummaryColumnSelection on Set<SummaryColumn> {
+  /// 实际输出的汇总列：勾选列 ∪ 必选列，按 [order] 排；[order] 漏掉的兜底追加到末尾，
+  /// 与交易列的 resolvedIn 同一套规则。
+  List<SummaryColumn> resolvedIn(List<SummaryColumn> order) {
+    final picked = <SummaryColumn>[
+      for (final column in order)
+        if (contains(column) || column.isRequired) column,
+    ];
+    for (final column in SummaryColumn.values) {
+      if ((contains(column) || column.isRequired) && !picked.contains(column)) {
+        picked.add(column);
+      }
+    }
+    return picked;
+  }
+}
+
 /// 把某个账本的交易摊成表格行。CSV 与 xlsx 两条落盘路径共用这一份取数逻辑，
 /// 避免两种格式的列顺序、币种兜底、分类拆级规则各写一遍而漂移。
 class TransactionExportService {
@@ -259,32 +324,63 @@ class TransactionExportService {
   /// 金额是主币种折算后的 nativeAmount 合计，所以三个金额列的表头带上币种码，免得
   /// 跨币种账本被当成原币相加。
   ///
+  /// [summaryColumns] / [summaryOrder] 同交易列的勾选/排序规则：默认勾「账本/笔数/支出」，
+  /// 账本列必选；[summaryColumns] 为 null 时出全列（旧调用方行为不变）。
+  /// 末行追加一行「合计」，方便在表里直接看总和。
+  ///
   /// 静态：它只需要文案和已算好的行，挂成实例方法会让人以为要一个 service 才能拼汇总。
   static LedgerExportSheet buildSummarySheet(
     AppLocalizations l10n,
     List<LedgerExportSheet> ledgerSheets, {
     required String currencyCode,
+    Set<SummaryColumn>? summaryColumns,
+    List<SummaryColumn>? summaryOrder,
   }) {
     final suffix = '(${currencyCode.toUpperCase()})';
+    final picked = summaryColumns == null
+        ? SummaryColumn.defaultOrder
+        : summaryColumns.resolvedIn(
+            summaryOrder ?? SummaryColumn.defaultOrder);
+    final header = <String>[
+      for (final column in picked)
+        column == SummaryColumn.ledger || column == SummaryColumn.count
+            ? column.headerText(l10n)
+            : '${column.headerText(l10n)}$suffix',
+    ];
+
+    final totalRows =
+        ledgerSheets.fold<int>(0, (sum, s) => sum + s.dataRowCount);
+    final totalIncome = ledgerSheets.fold<double>(0, (sum, s) => sum + s.income);
+    final totalExpense =
+        ledgerSheets.fold<double>(0, (sum, s) => sum + s.expense);
+
     return LedgerExportSheet(
       ledgerId: summarySheetLedgerId,
       ledgerName: l10n.exportSummarySheetName,
       rows: [
-        [
-          l10n.exportCsvHeaderLedger,
-          l10n.exportSummaryColCount,
-          '${l10n.exportSummaryColIncome}$suffix',
-          '${l10n.exportSummaryColExpense}$suffix',
-          '${l10n.exportSummaryColBalance}$suffix',
-        ],
+        header,
         for (final sheet in ledgerSheets)
           [
-            sheet.ledgerName,
-            sheet.dataRowCount.toString(),
-            sheet.income.toStringAsFixed(2),
-            sheet.expense.toStringAsFixed(2),
-            sheet.balance.toStringAsFixed(2),
+            for (final column in picked)
+              switch (column) {
+                SummaryColumn.ledger => sheet.ledgerName,
+                SummaryColumn.count => sheet.dataRowCount.toString(),
+                SummaryColumn.income => sheet.income.toStringAsFixed(2),
+                SummaryColumn.expense => sheet.expense.toStringAsFixed(2),
+                SummaryColumn.balance =>
+                  sheet.balance.toStringAsFixed(2),
+              },
           ],
+        // 合计行：金额列合计，笔数列合计，账本列写「合计」。
+        [
+          for (final column in picked)
+            column.totalValue(
+              l10n.exportSummaryTotalRow,
+              totalRows: totalRows,
+              totalIncome: totalIncome,
+              totalExpense: totalExpense,
+            ),
+        ],
       ],
     );
   }
@@ -370,8 +466,9 @@ class TransactionExportService {
   String _formatTime(DateTime happenedAt, bool pad) {
     final local = happenedAt.toLocal();
     String two(int v) => v.toString().padLeft(2, '0');
+    // 精确到分钟：秒位没有对账价值，还把单元格撑宽了。
     final text = '${local.year}-${two(local.month)}-${two(local.day)} '
-        '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
+        '${two(local.hour)}:${two(local.minute)}';
     // CSV 时代靠前后空格撑开 Excel 列宽，历史行为保持不变。
     return pad ? '  $text  ' : text;
   }

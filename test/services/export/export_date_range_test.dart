@@ -108,6 +108,26 @@ void main() {
     expect(sheet.dataRowCount, 0);
     expect(sheet.rows.length, 1);
   });
+
+  test('时间列精确到分钟，不出秒', () async {
+    // 回导侧 DateParser 认 'yyyy-MM-dd HH:mm'，砍掉秒不影响闭环；导出文件也不再
+    // 出现 ':ss' 尾巴。CSV 撑宽用的前后空格保留。
+    await seed();
+    final svc = service();
+    final ledgerId = await repo.getAllLedgers().then((ls) => ls.first.id);
+    // 列序按 defaultOrder（时间在前），但断言仍按表头找列，不猜位置。
+    final sheet = await svc.buildSheet(ledgerId,
+        columnOrder: ExportColumn.defaultOrder);
+    final timeIdx = sheet.rows.first.indexOf('时间');
+    expect(timeIdx, isNonNegative);
+
+    final times = sheet.rows.skip(1).map((r) => r[timeIdx].trim()).toList();
+    expect(times, containsAll(['2026-09-01 12:00', '2026-09-15 08:00', '2026-09-30 23:59']));
+    for (final t in times) {
+      expect(RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$').hasMatch(t), isTrue,
+          reason: '整串就是到分，多出 :ss 即失配');
+    }
+  });
 }
 
 /// service 要的 context 只在「按 key 翻译分类名」时用；本测试交易不带分类，

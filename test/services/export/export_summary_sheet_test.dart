@@ -42,7 +42,42 @@ void main() {
     expect(summary.rows.first, ['账本', '笔数', '收入(CNY)', '支出(CNY)', '结余(CNY)']);
     expect(summary.rows[1], ['华恒远', '1', '0.00', '150.00', '-150.00']);
     expect(summary.rows[2], ['国宇', '2', '1000.00', '80.00', '920.00']);
-    expect(summary.dataRowCount, 2, reason: '一行一个账本');
+    expect(summary.rows.last, ['合计', '3', '1000.00', '230.00', '770.00'],
+        reason: '末行是合计行：笔数/金额列求和，结余=总收入-总支出');
+    expect(summary.dataRowCount, 3, reason: '两个账本行 + 合计行');
+  });
+
+  test('默认只勾「账本/笔数/支出」三列，拖动排序后立即生效', () {
+    // 收入与结余默认收起（结余可自算），勾选集合决定列，顺序数组决定位置。
+    final summary = TransactionExportService.buildSummarySheet(
+      _l10n,
+      [_ledger(1, '国宇', rows: 2, income: 1000, expense: 80)],
+      currencyCode: 'CNY',
+      summaryColumns: SummaryColumn.defaultSelected,
+      summaryOrder: [
+        SummaryColumn.expense,
+        SummaryColumn.ledger,
+        SummaryColumn.count,
+      ],
+    );
+
+    expect(summary.rows.first, ['支出(CNY)', '账本', '笔数']);
+    expect(summary.rows[1], ['80.00', '国宇', '2']);
+  });
+
+  test('取消勾选只留账本/笔数，金额合计跟着消失', () {
+    final summary = TransactionExportService.buildSummarySheet(
+      _l10n,
+      [
+        _ledger(1, '华恒远', rows: 1, income: 0, expense: 150),
+        _ledger(2, '国宇', rows: 2, income: 1000, expense: 80),
+      ],
+      currencyCode: 'CNY',
+      summaryColumns: {SummaryColumn.ledger, SummaryColumn.count},
+    );
+
+    expect(summary.rows.first, ['账本', '笔数']);
+    expect(summary.rows.last, ['合计', '3']);
   });
 
   test('金额列表头始终带上折算所用的币种', () {
@@ -63,7 +98,8 @@ void main() {
       currencyCode: 'CNY',
     );
 
-    expect(summary.rows, hasLength(2));
+    expect(summary.rows, hasLength(3));
     expect(summary.rows[1], ['旅行', '3', '50.00', '120.50', '-70.50']);
+    expect(summary.rows.last, ['合计', '3', '50.00', '120.50', '-70.50']);
   });
 }

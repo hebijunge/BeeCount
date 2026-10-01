@@ -27,6 +27,10 @@ class ExportPage extends ConsumerStatefulWidget {
   ConsumerState<ExportPage> createState() => _ExportPageState();
 }
 
+/// 导出账本的选择模式：默认「点选」，此时未点过任何东西=全选；「全部」=强制勾上
+/// 所有账本，「取消」=清空。
+enum _LedgerSelectionMode { free, all, none }
+
 class _ExportPageState extends ConsumerState<ExportPage> {
   bool exporting = false;
   double progress = 0;
@@ -34,7 +38,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
 
   ExportFormat _format = ExportFormat.excel;
 
-  /// null 表示用户还没手动选过，此时按「当前账本」作默认勾选。
+  _LedgerSelectionMode _ledgerMode = _LedgerSelectionMode.free;
+
+  /// 用户勾过的账本集合；null 表示还没点过任何账本，按「全选」处理（默认全导）。
   Set<int>? _selectedLedgerIds;
 
   /// 导出列勾选，默认「时间 / 备注 / 金额」。金额必选在服务层兜底，UI 里也不给取消。
@@ -48,17 +54,56 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   DateTime? _startDate;
   DateTime? _endDate;
 
-  /// 用户勾过的账本集合；没勾过则回落到当前账本，保持旧版「只导当前账本」的行为。
+  /// 汇总 sheet 的列勾选与顺序，只在「Excel + 多账本」时生效；默认勾「账本/笔数/支出」。
+  Set<SummaryColumn> _summaryColumns = SummaryColumn.defaultSelected;
+  final List<SummaryColumn> _summaryColumnOrder =
+      List.of(SummaryColumn.defaultOrder);
+
+  /// 用户勾过的账本集合；没勾过则默认全选（全部账本一起导）。
   Set<int> _effectiveSelection(List<Ledger> ledgers, int currentLedgerId) {
     if (_selectedLedgerIds != null) return _selectedLedgerIds!;
-    if (ledgers.isEmpty) return const {};
-    if (ledgers.any((l) => l.id == currentLedgerId)) return {currentLedgerId};
-    return {ledgers.first.id};
+    return ledgers.map((l) => l.id).toSet();
   }
 
   /// 按账本表的顺序输出勾选的 id，保证 sheet 顺序稳定、不随点击次序变化。
   List<int> _orderedIds(List<Ledger> ledgers, Set<int> selected) =>
       ledgers.where((l) => selected.contains(l.id)).map((l) => l.id).toList();
+
+  /// 导出账本段右侧按钮：点选 → 全部 → 取消 三态循环，回「点选」时清掉手动集合、
+  /// 落回「默认全选」。
+  void _cycleLedgerMode() {
+    switch (_ledgerMode) {
+      case _LedgerSelectionMode.free:
+        setState(() {
+          _selectedLedgerIds = ledgersAllIds;
+          _ledgerMode = _LedgerSelectionMode.all;
+        });
+      case _LedgerSelectionMode.all:
+        setState(() {
+          _selectedLedgerIds = const {};
+          _ledgerMode = _LedgerSelectionMode.none;
+        });
+      case _LedgerSelectionMode.none:
+        setState(() {
+          _selectedLedgerIds = null;
+          _ledgerMode = _LedgerSelectionMode.free;
+        });
+    }
+  }
+
+  Set<int> get ledgersAllIds =>
+      ref.read(ledgersStreamProvider).valueOrNull?.map((l) => l.id).toSet() ?? {};
+
+  String _ledgerModeButtonLabel(AppLocalizations l10n) {
+    switch (_ledgerMode) {
+      case _LedgerSelectionMode.free:
+        return l10n.exportLedgerSelectFree;
+      case _LedgerSelectionMode.all:
+        return l10n.exportAllLedgers;
+      case _LedgerSelectionMode.none:
+        return l10n.exportLedgerDeselectAll;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,13 +149,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                     ),
                     if (ledgers.length > 1)
                       TextButton(
-                        onPressed: exporting
-                            ? null
-                            : () => setState(() {
-                                  _selectedLedgerIds =
-                                      ledgers.map((l) => l.id).toSet();
-                                }),
-                        child: Text(l10n.exportAllLedgers),
+                        key: const ValueKey('export-ledger-mode'),
+                        onPressed: exporting ? null : _cycleLedgerMode,
+                        child: Text(_ledgerModeButtonLabel(l10n)),
                       ),
                   ],
                 ),
@@ -144,8 +185,19 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 _dateRow(context, l10n, isStart: true),
                 _dateRow(context, l10n, isStart: false),
                 const SizedBox(height: 20),
-                Text(l10n.exportColumnsLabel,
-                    style: Theme.of(context).textTheme.labelLarge),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(l10n.exportColumnsLabel,
+                          style: Theme.of(context).textTheme.labelLarge),
+                    ),
+                    TextButton(
+                      key: const ValueKey('export-column-mode'),
+                      onPressed: exporting ? null : _toggleAllColumns,
+                      child: Text(_columnModeButtonLabel(l10n)),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 // 列方块紧凑排布、自动换行；长按某个方块拖到另一个上即可换位（点按方块
                 // 本身仍是勾选/取消）。用 Wrap + LongPressDraggable 而不是
@@ -169,6 +221,38 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                         .bodySmall
                         ?.copyWith(
                             color: Theme.of(context).colorScheme.outline)),
+                if (_withSummarySheet(ordered)) ...[
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(l10n.exportSummarySheetName,
+                            style: Theme.of(context).textTheme.labelLarge),
+                      ),
+                      TextButton(
+                        key: const ValueKey('export-summary-column-mode'),
+                        onPressed: exporting ? null : _toggleAllSummaryColumns,
+                        child: Text(_summaryColumnModeButtonLabel(l10n)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    key: const ValueKey('export-summary-columns-wrap'),
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (var i = 0; i < _summaryColumnOrder.length; i++)
+                        _summaryColumnChip(l10n, i),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(l10n.exportSummaryColumnsReorderHint,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Theme.of(context).colorScheme.outline)),
+                ],
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   onPressed: exporting || ordered.isEmpty
@@ -276,6 +360,97 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     });
   }
 
+  /// 导出列段右侧按钮：全选（含必选的金额）↔ 取消到只剩金额，来回切。
+  void _toggleAllColumns() {
+    final all = ExportColumn.values.toSet();
+    setState(() {
+      _columns = _columns.length >= all.length - 1 ? {ExportColumn.amount} : all;
+    });
+  }
+
+  String _columnModeButtonLabel(AppLocalizations l10n) => _columns.length >=
+          ExportColumn.values.length - 1
+      ? l10n.exportDeselectColumns
+      : l10n.exportSelectAllColumns;
+
+  /// 汇总列段方块：与导出列方块同款交互（点按勾选、长按拖动换位），配置的是
+  /// 汇总 sheet 自己的列，互不影响。
+  Widget _summaryColumnChip(AppLocalizations l10n, int index) {
+    final column = _summaryColumnOrder[index];
+    final chip = FilterChip(
+      key: ValueKey('export-summary-column-${column.name}'),
+      label: Text(column.headerText(l10n)),
+      selected: _summaryColumns.contains(column) || column.isRequired,
+      onSelected: exporting || column.isRequired
+          ? null
+          : (on) => setState(() {
+                final next = {..._summaryColumns};
+                if (on) {
+                  next.add(column);
+                } else {
+                  next.remove(column);
+                }
+                _summaryColumns = next;
+              }),
+    );
+
+    return DragTarget<int>(
+      onAcceptWithDetails: (details) => _moveSummaryColumn(details.data, index),
+      builder: (context, candidates, _) {
+        final beingReplaced = candidates.isNotEmpty && !candidates.contains(index);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: beingReplaced
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: LongPressDraggable<int>(
+            data: index,
+            delay: const Duration(milliseconds: 200),
+            feedback: Material(
+              color: Colors.transparent,
+              elevation: 4,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              child: chip,
+            ),
+            childWhenDragging: Opacity(opacity: 0.3, child: chip),
+            child: chip,
+          ),
+        );
+      },
+    );
+  }
+
+  void _moveSummaryColumn(int from, int to) {
+    if (from == to) return;
+    setState(() {
+      final moved = _summaryColumnOrder.removeAt(from);
+      _summaryColumnOrder.insert(to, moved);
+    });
+  }
+
+  /// 汇总列段右侧按钮：全选 ↔ 取消到只剩必选的「账本」。
+  void _toggleAllSummaryColumns() {
+    final all = SummaryColumn.values.toSet();
+    setState(() {
+      _summaryColumns = _summaryColumns.length >= all.length - 1
+          ? {SummaryColumn.ledger}
+          : all;
+    });
+  }
+
+  String _summaryColumnModeButtonLabel(AppLocalizations l10n) =>
+      _summaryColumns.length >= SummaryColumn.values.length - 1
+          ? l10n.exportDeselectColumns
+          : l10n.exportSelectAllColumns;
+
   /// 时间段筛选的一行：起 / 止各一行，复用搜索页同款交互（点日历按钮设值，
   /// 有值时可一键清空）。日期显示沿用搜索页的 YYYY-MM-DD 硬编码格式，不做 l10n。
   Widget _dateRow(BuildContext context, AppLocalizations l10n, {required bool isStart}) {
@@ -353,6 +528,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           endDate: _endDate,
           withSummarySheet: _withSummarySheet(ledgerIds),
           baseCurrency: ref.read(baseCurrencyProvider),
+          summaryColumns: {..._summaryColumns},
+          summaryColumnOrder: List.of(_summaryColumnOrder),
         ),
       ),
     );
@@ -410,8 +587,13 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       if (_withSummarySheet(ledgerIds)) {
         sheets.insert(
           0,
-          TransactionExportService.buildSummarySheet(l10n, sheets,
-              currencyCode: ref.read(baseCurrencyProvider)),
+          TransactionExportService.buildSummarySheet(
+            l10n,
+            sheets,
+            currencyCode: ref.read(baseCurrencyProvider),
+            summaryColumns: {..._summaryColumns},
+            summaryOrder: List.of(_summaryColumnOrder),
+          ),
         );
       }
 

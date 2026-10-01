@@ -71,6 +71,26 @@ void main() {
     expect(created.currency, 'TWD');
   });
 
+  test('选了「新建」策略时不复用同名账本，加后缀避开', () async {
+    final id = await repo.createLedger(name: '国宇');
+    final newId =
+        await svc.ensureLedgerByName(repo, '国宇', alwaysCreate: true);
+    expect(newId, isNot(id), reason: '同名的两本要分得开');
+    final created =
+        (await repo.getAllLedgers()).firstWhere((l) => l.id == newId);
+    expect(created.name, '国宇 (2)');
+  });
+
+  test('已有同后缀账本时继续递增，不会撞名', () async {
+    await repo.createLedger(name: '国宇');
+    await svc.ensureLedgerByName(repo, '国宇', alwaysCreate: true);
+    final third =
+        await svc.ensureLedgerByName(repo, '国宇', alwaysCreate: true);
+    final created =
+        (await repo.getAllLedgers()).firstWhere((l) => l.id == third);
+    expect(created.name, '国宇 (3)');
+  });
+
   test('空账本名直接报错，不会建出无名账本', () async {
     expect(() => svc.ensureLedgerByName(repo, '   '),
         throwsA(isA<ArgumentError>()));

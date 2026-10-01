@@ -36,6 +36,8 @@ void main() {
     WidgetTester tester, {
     required List<ImportLedgerGroup> groups,
     List<Ledger>? existing,
+    void Function(String? name, bool selected)? onSelectedGroupChanged,
+    void Function(String name, String strategy)? onStrategyChanged,
   }) async {
     await tester.binding.setSurfaceSize(const Size(900, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -48,6 +50,8 @@ void main() {
           groups: groups,
           ledgers: existing ?? ledgers,
           currentLedgerName: '日常',
+          onSelectedGroupChanged: onSelectedGroupChanged,
+          onStrategyChanged: onStrategyChanged,
         ),
       ),
     ));
@@ -118,5 +122,83 @@ void main() {
 
     expect(find.text('账本归属'), findsNothing);
     expect(badge('current'), findsNothing);
+  });
+
+  testWidgets('默认全勾；取消勾选回调对应组名', (tester) async {
+    final calls = <Object?>[];
+    await pump(
+      tester,
+      groups: const [
+        (ledgerName: null, count: 4),
+        (ledgerName: '国宇', count: 12),
+      ],
+      onSelectedGroupChanged: (name, v) => calls..add(name)..add(v),
+    );
+
+    final box = find.byKey(const ValueKey('import-ledger-plan-select-国宇'));
+    expect(tester.widget<Checkbox>(box).value, true, reason: '默认全选');
+    await tester.tap(box);
+    await tester.pump();
+    expect(calls, ['国宇', false]);
+  });
+
+  testWidgets('未标注那组也能勾掉，回调传 null 组名', (tester) async {
+    final calls = <Object?>[];
+    await pump(
+      tester,
+      groups: const [
+        (ledgerName: null, count: 4),
+        (ledgerName: '国宇', count: 12),
+      ],
+      onSelectedGroupChanged: (name, v) => calls..add(name)..add(v),
+    );
+
+    await tester.tap(
+        find.byKey(const ValueKey('import-ledger-plan-select-\u0000current')));
+    await tester.pump();
+    expect(calls, [null, false]);
+  });
+
+  testWidgets('写入策略默认「并入已有」，点「新建账本」回调 new', (tester) async {
+    final calls = <String>[];
+    await pump(
+      tester,
+      groups: const [(ledgerName: '国宇', count: 12)],
+      onStrategyChanged: (name, v) => calls.add('$name=$v'),
+    );
+
+    final segment =
+        find.byKey(const ValueKey('import-ledger-plan-strategy-国宇'));
+    expect(segment, findsOneWidget);
+    expect(
+      tester.widget<SegmentedButton<String>>(segment).selected,
+      {importStrategyOverwrite},
+      reason: '默认覆盖，不动策略就跟旧行为一致',
+    );
+    await tester.tap(find.descendant(
+        of: segment, matching: find.text('新建账本')));
+    await tester.pump();
+    expect(calls, ['国宇=new']);
+  });
+
+  testWidgets('当前账本组没有策略可选——它永远进当前账本', (tester) async {
+    await pump(
+      tester,
+      groups: const [
+        (ledgerName: null, count: 4),
+        (ledgerName: '国宇', count: 12),
+      ],
+      onStrategyChanged: (_, __) {},
+    );
+
+    expect(
+      find.descendant(
+        of: rowOf('_current_'),
+        matching:
+            find.byKey(const ValueKey('import-ledger-plan-strategy-\u0000current')),
+      ),
+      findsNothing,
+    );
+    expect(find.text('记入当前账本'), findsOneWidget);
   });
 }

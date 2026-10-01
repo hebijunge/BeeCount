@@ -179,13 +179,30 @@ class DataImportService {
     BaseRepository repo,
     String name, {
     String currency = 'CNY',
+    bool alwaysCreate = false,
   }) async {
     final wanted = name.trim();
     if (wanted.isEmpty) {
       throw ArgumentError('账本名不能为空');
     }
-    final existing = findLedgerIn(await repo.getAllLedgers(), wanted);
-    return existing ?? await repo.createLedger(name: wanted, currency: currency);
+    final ledgers = await repo.getAllLedgers();
+    if (!alwaysCreate) {
+      final existing = findLedgerIn(ledgers, wanted);
+      if (existing != null) return existing;
+      return await repo.createLedger(name: wanted, currency: currency);
+    }
+    // 选了「新建」就跳过同名匹配；已存在同名时加 (2)/(3) 后缀避开，避免两本
+    // 同名账本在账本选择器里分不清。
+    final taken = {
+      for (final l in ledgers) l.name.trim().toLowerCase(),
+    };
+    var unique = wanted;
+    var suffix = 2;
+    while (taken.contains(unique.toLowerCase())) {
+      unique = '$wanted ($suffix)';
+      suffix++;
+    }
+    return repo.createLedger(name: unique, currency: currency);
   }
 
   /// 账本名匹配规则本体，纯函数，供 [ensureLedgerByName] 和导入前的归属预览共用。

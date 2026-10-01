@@ -66,6 +66,11 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
   String _currentLedgerName = '';
   late final BillParser _billParser;
 
+  /// 各账本组是否导入：null=没动过=默认全选；key 是账本名（当前账本组用 `'\u0000current'`）。
+  final Map<String, bool> _ledgerSelected = {};
+  /// 各账本组写入策略：null=没动过=默认「覆盖」（并入已有账本）。
+  final Map<String, String?> _ledgerStrategy = {};
+
   @override
   void initState() {
     super.initState();
@@ -233,6 +238,15 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
                     groups: _ledgerGroups(),
                     ledgers: _allLedgers,
                     currentLedgerName: _currentLedgerName,
+                    selectedGroup: (name) =>
+                        _ledgerSelected[name ?? currentLedgerGroupKey],
+                    onSelectedGroupChanged: (name, v) {
+                      setState(() => _ledgerSelected[name ?? currentLedgerGroupKey] = v);
+                    },
+                    strategyOf: (name) => _ledgerStrategy[name],
+                    onStrategyChanged: (name, v) {
+                      setState(() => _ledgerStrategy[name] = v);
+                    },
                   ),
                   // 预览仅展示前 N 行，避免大文件一次性渲染导致卡顿
                   Text(AppLocalizations.of(context)!.importPreview,
@@ -554,6 +568,12 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
 
       for (final entry in groups.entries) {
         final ledgerName = entry.key;
+        final groupKey = ledgerName ?? currentLedgerGroupKey;
+        // 用户把该组勾掉了就整组跳过（默认全勾，行为不变）。
+        if (_ledgerSelected[groupKey] == false) continue;
+        // 「新建账本」策略下跳过同名匹配、直接建新本（重名时加后缀避开）。
+        final strategy = _ledgerStrategy[ledgerName ?? ''] ?? importStrategyOverwrite;
+        final alwaysCreate = strategy == importStrategyNew;
         // 没有归属信息的行仍进当前账本，保持旧行为。
         final targetLedgerId = ledgerName == null
             ? ledgerId
@@ -561,6 +581,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
                 repo,
                 ledgerName,
                 currency: ledgerCurrency,
+                alwaysCreate: alwaysCreate,
               );
         touchedLedgerIds.add(targetLedgerId);
 

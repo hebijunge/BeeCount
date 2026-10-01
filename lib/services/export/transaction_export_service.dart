@@ -100,6 +100,8 @@ extension ExportColumnSelection on Set<ExportColumn> {
 /// 单个账本的导出内容：[rows] 第 0 行是表头，其余是数据行。
 ///
 /// [income] / [expense] 是该账本的收入与支出合计，供多账本汇总 sheet 直接取用。
+/// [numericColumns] 声明哪些列是数字（列下标与 [rows] 对齐）。xlsx 落盘据此把
+/// 单元格写成真正的数值 —— 文本金额在 Excel 里左对齐、没法直接求和。
 class LedgerExportSheet {
   const LedgerExportSheet({
     required this.ledgerId,
@@ -107,6 +109,7 @@ class LedgerExportSheet {
     required this.rows,
     this.income = 0,
     this.expense = 0,
+    this.numericColumns = const {},
   });
 
   final int ledgerId;
@@ -114,6 +117,7 @@ class LedgerExportSheet {
   final List<List<String>> rows;
   final double income;
   final double expense;
+  final Set<int> numericColumns;
 
   int get dataRowCount => rows.isEmpty ? 0 : rows.length - 1;
 
@@ -315,6 +319,11 @@ class TransactionExportService {
       rows: rows,
       income: income,
       expense: expense,
+      // 金额列必选（isRequired），下标 = 账本列偏移 + 它在勾选列里的位置。
+      numericColumns: {
+        (includeLedgerColumn ? 1 : 0) +
+            pickedColumns.indexOf(ExportColumn.amount),
+      },
     );
   }
 
@@ -357,6 +366,11 @@ class TransactionExportService {
     return LedgerExportSheet(
       ledgerId: summarySheetLedgerId,
       ledgerName: l10n.exportSummarySheetName,
+      // 除账本名外全是统计数字（笔数/金额），xlsx 里按数字落。
+      numericColumns: {
+        for (var i = 0; i < picked.length; i++)
+          if (picked[i] != SummaryColumn.ledger) i,
+      },
       rows: [
         header,
         for (final sheet in ledgerSheets)

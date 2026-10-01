@@ -39,7 +39,7 @@ void main() {
     void Function(String? name, bool selected)? onSelectedGroupChanged,
     void Function(String name, String strategy)? onStrategyChanged,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(900, 1600));
+    await tester.binding.setSurfaceSize(const Size(411, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -170,6 +170,10 @@ void main() {
     final segment =
         find.byKey(const ValueKey('import-ledger-plan-strategy-国宇'));
     expect(segment, findsOneWidget);
+    final labelFinder =
+        find.descendant(of: rowOf('国宇'), matching: find.text('国宇'));
+    expect(tester.getSize(labelFinder).width, greaterThan(20),
+        reason: '策略控件再宽也不能把账本名挤没——名字看不见就没法核对去向');
     expect(
       tester.widget<SegmentedButton<String>>(segment).selected,
       {importStrategyOverwrite},

@@ -125,4 +125,37 @@ void main() {
       reason: '汇总页里的 1000.00 不该被当成一笔交易读回来',
     );
   });
+
+  test('汇总列勾到不含「结余」时，靠 sheet 名照样跳过汇总页', () async {
+    // 汇总列可勾选后默认只出「账本/笔数/支出」，表头特征词（笔数+结余）不再必然命中。
+    // 真机就是这样让汇总页逃过跳过、抢当参考表头，把两张真账本整表丢掉。
+    const summary = LedgerExportSheet(
+      ledgerId: summarySheetLedgerId,
+      ledgerName: '汇总',
+      rows: [
+        ['账本', '笔数', '支出(CNY)'],
+        ['默认账本', '1', '35.00'],
+        ['合计', '2', '185.00'],
+      ],
+    );
+    final bytes = await buildWorkbookBytes([
+      summary,
+      _sheet(1, '默认账本', [
+        ['2026-09-30 09:11', '35.00', ''],
+      ]),
+    ]);
+
+    final lines = const LineSplitter().convert(
+      XlsxReader.convertXlsxToCSV(
+        Uint8List.fromList(bytes),
+        ledgerColumnHeader: '账本',
+        summaryHeaderMarkers: const ['笔数', '结余'],
+        summarySheetNames: const ['汇总'],
+      ),
+    );
+
+    expect(lines, hasLength(2), reason: '表头 + 唯一一笔真交易');
+    expect(lines.last, startsWith('默认账本,'));
+    expect(lines.where((line) => line.contains('合计')), isEmpty);
+  });
 }

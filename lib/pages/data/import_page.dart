@@ -211,7 +211,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // 那时 context 可能已经失效，不能就地取 l10n。
     final l10n = AppLocalizations.of(context);
     final ledgerHeader = l10n.exportCsvHeaderLedger;
-    // 汇总 sheet 的识别词：多账本导出的第一张表只有「笔数/结余」这类统计列，不是账单。
+    // 汇总 sheet 的识别：名字是最稳的（列可勾选后表头未必再含特征词），
+    // 「笔数/结余」表头词留给用户在 Excel 里改过名的旧文件兜底。
+    final summarySheetNames = [l10n.exportSummarySheetName];
     final summaryMarkers = [l10n.exportSummaryColCount, l10n.exportSummaryColBalance];
 
     setState(() {
@@ -237,6 +239,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               bytes,
               ledgerColumnHeader: ledgerHeader,
               summaryHeaderMarkers: summaryMarkers,
+              summarySheetNames: summarySheetNames,
             );
           } catch (e) {
             if (mounted) {

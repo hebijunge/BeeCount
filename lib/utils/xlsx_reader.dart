@@ -15,6 +15,8 @@ class XlsxReader {
   ///   是为了让任何新增调用点都没办法悄悄退回"丢掉账本归属"的旧行为。
   /// - [summaryHeaderMarkers]: 汇总 sheet 的表头特征词（如「笔数」「结余」）。多账本
   ///   导出的第一张 sheet 是逐本统计而非账单，必须整表跳过，同必填的理由。
+  /// - [summarySheetNames]: 汇总 sheet 的名字（l10n「汇总」）。汇总列现在可勾选，
+  ///   表头未必再含特征词，名字是导出侧唯一稳定的标识；表头词只作旧文件兜底。
   ///
   /// 返回:
   /// - CSV 格式的字符串，每行用 \n 分隔，字段用逗号分隔，第 0 列是账本名
@@ -22,6 +24,7 @@ class XlsxReader {
     Uint8List bytes, {
     required String ledgerColumnHeader,
     required List<String> summaryHeaderMarkers,
+    List<String> summarySheetNames = const [],
   }) {
     try {
       // 解码 Excel 文件
@@ -88,8 +91,10 @@ class XlsxReader {
 
         // 汇总 sheet 整表跳过：它若排在最前，会当上后面比对的参考表头，每张真账本
         // 都因表头对不上被丢掉（数据全丢还不报错），而它自己的行会被当成交易灌进
-        // 一个叫「汇总」的账本。
-        if (_isSummaryHeader(rows.first, summaryHeaderMarkers)) continue;
+        // 一个叫「汇总」的账本。识别优先看 sheet 名（导出侧就是按这个名字写的，跟列
+        // 勾选无关）；表头特征词留给名字被用户改过的旧文件兜底。
+        if (summarySheetNames.contains(sheetName.trim()) ||
+            _isSummaryHeader(rows.first, summaryHeaderMarkers)) continue;
 
         // 第 0 列贴上来源 sheet 名；表头行贴列名。sheet 名同样要过 CSV 转义，
         // 否则带逗号的账本名会把整行的列数撑乱。

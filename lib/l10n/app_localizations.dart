@@ -9362,6 +9362,96 @@ abstract class AppLocalizations {
   /// **'Automatically add original image as attachment for photo billing'**
   String get smartBillingAutoAttachmentDesc;
 
+  /// No description provided for @clipboardBillSettingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard Billing'**
+  String get clipboardBillSettingTitle;
+
+  /// No description provided for @clipboardBillSettingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'On launch and when returning to foreground, check the clipboard for a bill and ask before recording'**
+  String get clipboardBillSettingDesc;
+
+  /// No description provided for @clipboardBillDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill found in clipboard'**
+  String get clipboardBillDialogTitle;
+
+  /// No description provided for @clipboardBillAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get clipboardBillAmountLabel;
+
+  /// No description provided for @clipboardBillCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get clipboardBillCategoryLabel;
+
+  /// No description provided for @clipboardBillNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get clipboardBillNoteLabel;
+
+  /// No description provided for @clipboardBillLedgerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get clipboardBillLedgerLabel;
+
+  /// No description provided for @clipboardBillTypeIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Income'**
+  String get clipboardBillTypeIncome;
+
+  /// No description provided for @clipboardBillTypeExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get clipboardBillTypeExpense;
+
+  /// No description provided for @clipboardBillTypeTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get clipboardBillTypeTransfer;
+
+  /// No description provided for @clipboardBillConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Record {count} bills'**
+  String clipboardBillConfirm(int count);
+
+  /// No description provided for @clipboardBillSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded {count} bills'**
+  String clipboardBillSaved(int count);
+
+  /// No description provided for @clipboardBillAmountInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid amount'**
+  String get clipboardBillAmountInvalid;
+
+  /// No description provided for @clipboardBillNothingToSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to record'**
+  String get clipboardBillNothingToSave;
+
+  /// No description provided for @clipboardBillNoLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'No ledger available. Create one first.'**
+  String get clipboardBillNoLedger;
+
   /// No description provided for @autoScreenshotBillingIosTitle.
   ///
   /// In en, this message translates to:

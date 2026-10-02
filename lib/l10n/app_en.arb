@@ -2081,6 +2081,35 @@
   "smartBillingAutoTagsDesc": "Automatically associate frequently used tags based on category",
   "smartBillingAutoAttachment": "Auto-add Attachment",
   "smartBillingAutoAttachmentDesc": "Automatically add original image as attachment for photo billing",
+  "clipboardBillSettingTitle": "Clipboard Billing",
+  "clipboardBillSettingDesc": "On launch and when returning to foreground, check the clipboard for a bill and ask before recording",
+  "clipboardBillDialogTitle": "Bill found in clipboard",
+  "clipboardBillAmountLabel": "Amount",
+  "clipboardBillCategoryLabel": "Category",
+  "clipboardBillNoteLabel": "Note",
+  "clipboardBillLedgerLabel": "Ledger",
+  "clipboardBillTypeIncome": "Income",
+  "clipboardBillTypeExpense": "Expense",
+  "clipboardBillTypeTransfer": "Transfer",
+  "clipboardBillConfirm": "Record {count} bills",
+  "clipboardBillSaved": "Recorded {count} bills",
+  "clipboardBillAmountInvalid": "Invalid amount",
+  "clipboardBillNothingToSave": "Nothing to record",
+  "clipboardBillNoLedger": "No ledger available. Create one first.",
+  "@clipboardBillConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@clipboardBillSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "autoScreenshotBillingIosTitle": "Auto Billing",
   "autoScreenshotBillingIosDesc": "Auto-recognize payments via Shortcuts",
   "shareBilling": "Share to Bill",

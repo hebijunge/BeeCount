@@ -394,6 +394,20 @@ class SmartBillingPage extends ConsumerWidget {
                           },
                         ),
                       ),
+                      BeeTokens.cardDivider(context),
+                      // 剪贴板记账（默认关：会静默读系统剪贴板并调用大模型）
+                      AppListTile(
+                        leading: Icons.content_paste_go_outlined,
+                        title: l10n.clipboardBillSettingTitle,
+                        subtitle: l10n.clipboardBillSettingDesc,
+                        trailing: Switch.adaptive(
+                          value: ref.watch(clipboardBillEnabledProvider),
+                          activeColor: ref.watch(primaryColorProvider),
+                          onChanged: (value) {
+                            ref.read(clipboardBillEnabledProvider.notifier).state = value;
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 ),

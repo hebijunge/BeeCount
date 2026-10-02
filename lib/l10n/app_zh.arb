@@ -1959,6 +1959,35 @@
   "smartBillingAutoTagsDesc": "智能记账时自动根据分类关联常用标签",
   "smartBillingAutoAttachment": "自动添加附件",
   "smartBillingAutoAttachmentDesc": "图片/拍照记账时自动将原图添加为附件",
+  "clipboardBillSettingTitle": "剪贴板记账",
+  "clipboardBillSettingDesc": "启动或切回前台时识别剪贴板里的账单，弹窗确认后再入账",
+  "clipboardBillDialogTitle": "剪贴板里有可记的账",
+  "clipboardBillAmountLabel": "金额",
+  "clipboardBillCategoryLabel": "分类",
+  "clipboardBillNoteLabel": "备注",
+  "clipboardBillLedgerLabel": "账本",
+  "clipboardBillTypeIncome": "收入",
+  "clipboardBillTypeExpense": "支出",
+  "clipboardBillTypeTransfer": "转账",
+  "clipboardBillConfirm": "入账 {count} 笔",
+  "clipboardBillSaved": "已记入 {count} 笔",
+  "clipboardBillAmountInvalid": "金额不合法",
+  "clipboardBillNothingToSave": "没有可入账的账单",
+  "clipboardBillNoLedger": "没有可用账本，请先创建一个",
+  "@clipboardBillConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@clipboardBillSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "autoScreenshotBillingIosTitle": "自动记账",
   "autoScreenshotBillingIosDesc": "通过快捷指令自动识别支付信息记账",
   "shareBilling": "分享记账",

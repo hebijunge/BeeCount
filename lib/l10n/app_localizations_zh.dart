@@ -4903,6 +4903,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smartBillingAutoAttachmentDesc => '图片/拍照记账时自动将原图添加为附件';
 
   @override
+  String get clipboardBillSettingTitle => '剪贴板记账';
+
+  @override
+  String get clipboardBillSettingDesc => '启动或切回前台时识别剪贴板里的账单，弹窗确认后再入账';
+
+  @override
+  String get clipboardBillDialogTitle => '剪贴板里有可记的账';
+
+  @override
+  String get clipboardBillAmountLabel => '金额';
+
+  @override
+  String get clipboardBillCategoryLabel => '分类';
+
+  @override
+  String get clipboardBillNoteLabel => '备注';
+
+  @override
+  String get clipboardBillLedgerLabel => '账本';
+
+  @override
+  String get clipboardBillTypeIncome => '收入';
+
+  @override
+  String get clipboardBillTypeExpense => '支出';
+
+  @override
+  String get clipboardBillTypeTransfer => '转账';
+
+  @override
+  String clipboardBillConfirm(int count) {
+    return '入账 $count 笔';
+  }
+
+  @override
+  String clipboardBillSaved(int count) {
+    return '已记入 $count 笔';
+  }
+
+  @override
+  String get clipboardBillAmountInvalid => '金额不合法';
+
+  @override
+  String get clipboardBillNothingToSave => '没有可入账的账单';
+
+  @override
+  String get clipboardBillNoLedger => '没有可用账本，请先创建一个';
+
+  @override
   String get autoScreenshotBillingIosTitle => '自动记账';
 
   @override
@@ -12974,6 +13023,55 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get smartBillingAutoAttachmentDesc => '圖片/拍照記帳時自動將原圖新增為附件';
+
+  @override
+  String get clipboardBillSettingTitle => '剪貼簿記帳';
+
+  @override
+  String get clipboardBillSettingDesc => '啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳';
+
+  @override
+  String get clipboardBillDialogTitle => '剪貼簿有可記的帳';
+
+  @override
+  String get clipboardBillAmountLabel => '金額';
+
+  @override
+  String get clipboardBillCategoryLabel => '分類';
+
+  @override
+  String get clipboardBillNoteLabel => '備註';
+
+  @override
+  String get clipboardBillLedgerLabel => '帳本';
+
+  @override
+  String get clipboardBillTypeIncome => '收入';
+
+  @override
+  String get clipboardBillTypeExpense => '支出';
+
+  @override
+  String get clipboardBillTypeTransfer => '轉帳';
+
+  @override
+  String clipboardBillConfirm(int count) {
+    return '入帳 $count 筆';
+  }
+
+  @override
+  String clipboardBillSaved(int count) {
+    return '已記入 $count 筆';
+  }
+
+  @override
+  String get clipboardBillAmountInvalid => '金額不合法';
+
+  @override
+  String get clipboardBillNothingToSave => '沒有可入帳的帳單';
+
+  @override
+  String get clipboardBillNoLedger => '沒有可用帳本，請先建立一個';
 
   @override
   String get autoScreenshotBillingIosTitle => '自動記帳';

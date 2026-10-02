@@ -28,6 +28,7 @@ import 'utils/image_billing_helper.dart';
 import 'pages/ai/ai_chat_page.dart';
 import 'services/platform/app_link_service.dart';
 import 'services/platform/quick_actions_service.dart';
+import 'services/ai/clipboard_bill_watcher.dart';
 import 'services/system/logger_service.dart';
 import 'services/security/app_lock_service.dart';
 import 'providers/security_providers.dart';
@@ -63,6 +64,11 @@ class _BeeAppState extends ConsumerState<BeeApp>
 
   // 快捷操作服务
   final QuickActionsService _quickActionsService = QuickActionsService();
+
+  // 剪贴板记账：启动 + 切回前台各扫一次（开关默认关，见 clipboardBillEnabledProvider）
+  final ClipboardBillWatcher _clipboardBillWatcher = ClipboardBillWatcher();
+  Timer? _clipboardScanTimer;
+  ProviderSubscription<AppInitState>? _appInitSubscription;
 
   // 防止 AppLink 动作重复执行（使用静态变量，跨实例共享）
   static bool _isHandlingAppLink = false;
@@ -121,6 +127,18 @@ class _BeeAppState extends ConsumerState<BeeApp>
     // 处理可能在初始化前就触发的快捷操作
     _quickActionsService.processPendingAction();
     logger.info('QuickActions', 'BeeApp: 快捷操作服务已设置');
+
+    // 冷启动的剪贴板扫描：resumed 只在"从后台回来"时才回调，启动那一下不会触发，
+    // 所以监听就绪状态。fireImmediately 覆盖「BeeApp 重建时 init 早已 ready」的情况。
+    _appInitSubscription = ref.listenManual<AppInitState>(
+      appInitStateProvider,
+      (previous, next) {
+        if (next == AppInitState.ready) {
+          _scheduleClipboardBillScan(trigger: 'startup');
+        }
+      },
+      fireImmediately: true,
+    );
   }
 
   /// 设置 AppLink 监听
@@ -580,6 +598,8 @@ class _BeeAppState extends ConsumerState<BeeApp>
   @override
   void dispose() {
     _drainTimer?.cancel();
+    _clipboardScanTimer?.cancel();
+    _appInitSubscription?.close();
     _appLinkSubscription?.close();
     _removeOverlay();
     _expandController.dispose();
@@ -741,7 +761,20 @@ class _BeeAppState extends ConsumerState<BeeApp>
       _updateWidget();
       // 前台稳定后认领待处理深链(冷启动/主题变更重建后,在最终页面树上打开)
       _drainPendingDeepLink(trigger: 'resumed');
+      _scheduleClipboardBillScan(trigger: 'resumed');
     }
+  }
+
+  /// 剪贴板记账扫描排程。
+  ///
+  /// 延迟一拍和 `_drainPendingDeepLink` 同一个理由：resumed 瞬间应用锁页 /
+  /// 隐私模糊屏可能正在收起，此刻弹窗会盖在过渡页面上或被重建丢掉。
+  void _scheduleClipboardBillScan({required String trigger}) {
+    _clipboardScanTimer?.cancel();
+    _clipboardScanTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      _clipboardBillWatcher.scan(context: context, ref: ref);
+    });
   }
 
   @override

@@ -1477,6 +1477,35 @@
   "smartBillingAutoTagsDesc": "카테고리에 따라 자주 사용하는 태그를 자동으로 연결합니다",
   "smartBillingAutoAttachment": "첨부파일 자동 추가",
   "smartBillingAutoAttachmentDesc": "사진으로 기록할 때 원본 이미지를 자동으로 첨부파일로 추가합니다",
+  "clipboardBillSettingTitle": "클립보드로 기록",
+  "clipboardBillSettingDesc": "앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다",
+  "clipboardBillDialogTitle": "클립보드에 기록할 내역이 있습니다",
+  "clipboardBillAmountLabel": "금액",
+  "clipboardBillCategoryLabel": "분류",
+  "clipboardBillNoteLabel": "메모",
+  "clipboardBillLedgerLabel": "가계부",
+  "clipboardBillTypeIncome": "수입",
+  "clipboardBillTypeExpense": "지출",
+  "clipboardBillTypeTransfer": "이체",
+  "clipboardBillConfirm": "{count}건 기록",
+  "clipboardBillSaved": "{count}건을 기록했습니다",
+  "clipboardBillAmountInvalid": "금액이 올바르지 않습니다",
+  "clipboardBillNothingToSave": "기록할 내역이 없습니다",
+  "clipboardBillNoLedger": "사용할 수 있는 가계부가 없습니다. 먼저 만드세요.",
+  "@clipboardBillConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@clipboardBillSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "autoScreenshotBillingIosTitle": "자동 기록",
   "autoScreenshotBillingIosDesc": "단축어를 통해 결제 내역을 자동으로 인식합니다",
   "shareBilling": "공유로 기록",

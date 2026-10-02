@@ -4903,6 +4903,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartBillingAutoAttachmentDesc => 'Automatically add original image as attachment for photo billing';
 
   @override
+  String get clipboardBillSettingTitle => 'Clipboard Billing';
+
+  @override
+  String get clipboardBillSettingDesc => 'On launch and when returning to foreground, check the clipboard for a bill and ask before recording';
+
+  @override
+  String get clipboardBillDialogTitle => 'Bill found in clipboard';
+
+  @override
+  String get clipboardBillAmountLabel => 'Amount';
+
+  @override
+  String get clipboardBillCategoryLabel => 'Category';
+
+  @override
+  String get clipboardBillNoteLabel => 'Note';
+
+  @override
+  String get clipboardBillLedgerLabel => 'Ledger';
+
+  @override
+  String get clipboardBillTypeIncome => 'Income';
+
+  @override
+  String get clipboardBillTypeExpense => 'Expense';
+
+  @override
+  String get clipboardBillTypeTransfer => 'Transfer';
+
+  @override
+  String clipboardBillConfirm(int count) {
+    return 'Record $count bills';
+  }
+
+  @override
+  String clipboardBillSaved(int count) {
+    return 'Recorded $count bills';
+  }
+
+  @override
+  String get clipboardBillAmountInvalid => 'Invalid amount';
+
+  @override
+  String get clipboardBillNothingToSave => 'Nothing to record';
+
+  @override
+  String get clipboardBillNoLedger => 'No ledger available. Create one first.';
+
+  @override
   String get autoScreenshotBillingIosTitle => 'Auto Billing';
 
   @override

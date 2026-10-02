@@ -2005,6 +2005,35 @@
   "smartBillingAIRequired": "語音記帳必須配置 AI 語音辨識服務，請先在「我的 → AI 設定」中配置",
   "smartBillingAutoAttachment": "自動新增附件",
   "smartBillingAutoAttachmentDesc": "圖片/拍照記帳時自動將原圖新增為附件",
+  "clipboardBillSettingTitle": "剪貼簿記帳",
+  "clipboardBillSettingDesc": "啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳",
+  "clipboardBillDialogTitle": "剪貼簿有可記的帳",
+  "clipboardBillAmountLabel": "金額",
+  "clipboardBillCategoryLabel": "分類",
+  "clipboardBillNoteLabel": "備註",
+  "clipboardBillLedgerLabel": "帳本",
+  "clipboardBillTypeIncome": "收入",
+  "clipboardBillTypeExpense": "支出",
+  "clipboardBillTypeTransfer": "轉帳",
+  "clipboardBillConfirm": "入帳 {count} 筆",
+  "clipboardBillSaved": "已記入 {count} 筆",
+  "clipboardBillAmountInvalid": "金額不合法",
+  "clipboardBillNothingToSave": "沒有可入帳的帳單",
+  "clipboardBillNoLedger": "沒有可用帳本，請先建立一個",
+  "@clipboardBillConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@clipboardBillSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "smartBillingAutoTags": "自動關聯標籤",
   "smartBillingAutoTagsDesc": "智慧記帳時自動根據分類關聯常用標籤",
   "smartBillingCameraBilling": "拍照記帳",

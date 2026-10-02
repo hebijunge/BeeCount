@@ -4903,6 +4903,55 @@ class AppLocalizationsKo extends AppLocalizations {
   String get smartBillingAutoAttachmentDesc => '사진으로 기록할 때 원본 이미지를 자동으로 첨부파일로 추가합니다';
 
   @override
+  String get clipboardBillSettingTitle => '클립보드로 기록';
+
+  @override
+  String get clipboardBillSettingDesc => '앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다';
+
+  @override
+  String get clipboardBillDialogTitle => '클립보드에 기록할 내역이 있습니다';
+
+  @override
+  String get clipboardBillAmountLabel => '금액';
+
+  @override
+  String get clipboardBillCategoryLabel => '분류';
+
+  @override
+  String get clipboardBillNoteLabel => '메모';
+
+  @override
+  String get clipboardBillLedgerLabel => '가계부';
+
+  @override
+  String get clipboardBillTypeIncome => '수입';
+
+  @override
+  String get clipboardBillTypeExpense => '지출';
+
+  @override
+  String get clipboardBillTypeTransfer => '이체';
+
+  @override
+  String clipboardBillConfirm(int count) {
+    return '$count건 기록';
+  }
+
+  @override
+  String clipboardBillSaved(int count) {
+    return '$count건을 기록했습니다';
+  }
+
+  @override
+  String get clipboardBillAmountInvalid => '금액이 올바르지 않습니다';
+
+  @override
+  String get clipboardBillNothingToSave => '기록할 내역이 없습니다';
+
+  @override
+  String get clipboardBillNoLedger => '사용할 수 있는 가계부가 없습니다. 먼저 만드세요.';
+
+  @override
   String get autoScreenshotBillingIosTitle => '자동 기록';
 
   @override

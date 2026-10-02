@@ -1478,7 +1478,7 @@
   "smartBillingAutoAttachment": "첨부파일 자동 추가",
   "smartBillingAutoAttachmentDesc": "사진으로 기록할 때 원본 이미지를 자동으로 첨부파일로 추가합니다",
   "clipboardBillSettingTitle": "클립보드로 기록",
-  "clipboardBillSettingDesc": "앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다",
+  "clipboardBillSettingDesc": "앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다. 클립보드 내용은 설정한 AI 서비스 제공업체로 전송됩니다.",
   "clipboardBillDialogTitle": "클립보드에 기록할 내역이 있습니다",
   "clipboardBillAmountLabel": "금액",
   "clipboardBillCategoryLabel": "분류",

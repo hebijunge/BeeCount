@@ -2006,7 +2006,7 @@
   "smartBillingAutoAttachment": "自動新增附件",
   "smartBillingAutoAttachmentDesc": "圖片/拍照記帳時自動將原圖新增為附件",
   "clipboardBillSettingTitle": "剪貼簿記帳",
-  "clipboardBillSettingDesc": "啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳",
+  "clipboardBillSettingDesc": "啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳；剪貼簿內容會傳給你設定的 AI 服務商處理",
   "clipboardBillDialogTitle": "剪貼簿有可記的帳",
   "clipboardBillAmountLabel": "金額",
   "clipboardBillCategoryLabel": "分類",

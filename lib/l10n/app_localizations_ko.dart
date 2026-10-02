@@ -4906,7 +4906,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clipboardBillSettingTitle => '클립보드로 기록';
 
   @override
-  String get clipboardBillSettingDesc => '앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다';
+  String get clipboardBillSettingDesc => '앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다. 클립보드 내용은 설정한 AI 서비스 제공업체로 전송됩니다.';
 
   @override
   String get clipboardBillDialogTitle => '클립보드에 기록할 내역이 있습니다';

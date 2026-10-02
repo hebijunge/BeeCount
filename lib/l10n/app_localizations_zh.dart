@@ -4906,7 +4906,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clipboardBillSettingTitle => '剪贴板记账';
 
   @override
-  String get clipboardBillSettingDesc => '启动或切回前台时识别剪贴板里的账单，弹窗确认后再入账';
+  String get clipboardBillSettingDesc => '启动或切回前台时识别剪贴板里的账单，弹窗确认后再入账；剪贴板内容会发给你配置的 AI 服务商处理';
 
   @override
   String get clipboardBillDialogTitle => '剪贴板里有可记的账';
@@ -13028,7 +13028,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get clipboardBillSettingTitle => '剪貼簿記帳';
 
   @override
-  String get clipboardBillSettingDesc => '啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳';
+  String get clipboardBillSettingDesc => '啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳；剪貼簿內容會傳給你設定的 AI 服務商處理';
 
   @override
   String get clipboardBillDialogTitle => '剪貼簿有可記的帳';

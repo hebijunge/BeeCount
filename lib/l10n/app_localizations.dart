@@ -9371,7 +9371,7 @@ abstract class AppLocalizations {
   /// No description provided for @clipboardBillSettingDesc.
   ///
   /// In en, this message translates to:
-  /// **'On launch and when returning to foreground, check the clipboard for a bill and ask before recording'**
+  /// **'On launch and when returning to foreground, check the clipboard for a bill and ask before recording. Clipboard text is sent to the AI provider you configured.'**
   String get clipboardBillSettingDesc;
 
   /// No description provided for @clipboardBillDialogTitle.

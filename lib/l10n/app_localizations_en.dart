@@ -4906,7 +4906,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clipboardBillSettingTitle => 'Clipboard Billing';
 
   @override
-  String get clipboardBillSettingDesc => 'On launch and when returning to foreground, check the clipboard for a bill and ask before recording';
+  String get clipboardBillSettingDesc => 'On launch and when returning to foreground, check the clipboard for a bill and ask before recording. Clipboard text is sent to the AI provider you configured.';
 
   @override
   String get clipboardBillDialogTitle => 'Bill found in clipboard';

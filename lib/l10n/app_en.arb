@@ -2082,7 +2082,7 @@
   "smartBillingAutoAttachment": "Auto-add Attachment",
   "smartBillingAutoAttachmentDesc": "Automatically add original image as attachment for photo billing",
   "clipboardBillSettingTitle": "Clipboard Billing",
-  "clipboardBillSettingDesc": "On launch and when returning to foreground, check the clipboard for a bill and ask before recording",
+  "clipboardBillSettingDesc": "On launch and when returning to foreground, check the clipboard for a bill and ask before recording. Clipboard text is sent to the AI provider you configured.",
   "clipboardBillDialogTitle": "Bill found in clipboard",
   "clipboardBillAmountLabel": "Amount",
   "clipboardBillCategoryLabel": "Category",

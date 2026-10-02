@@ -1960,7 +1960,7 @@
   "smartBillingAutoAttachment": "自动添加附件",
   "smartBillingAutoAttachmentDesc": "图片/拍照记账时自动将原图添加为附件",
   "clipboardBillSettingTitle": "剪贴板记账",
-  "clipboardBillSettingDesc": "启动或切回前台时识别剪贴板里的账单，弹窗确认后再入账",
+  "clipboardBillSettingDesc": "启动或切回前台时识别剪贴板里的账单，弹窗确认后再入账；剪贴板内容会发给你配置的 AI 服务商处理",
   "clipboardBillDialogTitle": "剪贴板里有可记的账",
   "clipboardBillAmountLabel": "金额",
   "clipboardBillCategoryLabel": "分类",

@@ -110,6 +110,12 @@ void main() {
     expect(find.byIcon(Icons.arrow_drop_down), findsNWidgets(2));
     expect(find.widgetWithText(DropdownMenuItem, '转账'), findsNothing);
 
+    // 遮罩调浅过：默认 black54（alpha 137）会被感知成"闪黑屏"
+    final barriers = tester
+        .widgetList<ModalBarrier>(find.byType(ModalBarrier))
+        .where((b) => b.color == Colors.black.withValues(alpha: 0.24));
+    expect(barriers, hasLength(1));
+
     final typeY = tester.getRect(find.text('类型').first).center.dy;
     final categoryY = tester.getRect(find.text('分类').first).center.dy;
     final ledgerY = tester.getRect(find.text('账本').first).center.dy;

@@ -41,6 +41,9 @@ class ClipboardBillPreviewDialog extends ConsumerStatefulWidget {
   }) {
     return showDialog<int>(
       context: context,
+      // 默认遮罩是 black54；这个弹窗是切回前台后自己冒出来的，压暗一半会被
+      // 感知成"闪黑屏"，调浅到 24%（Colors 没有 black24 常量）。
+      barrierColor: Colors.black.withValues(alpha: 0.24),
       builder: (_) => ClipboardBillPreviewDialog(
         bills: bills,
         sourceText: sourceText,

@@ -2009,6 +2009,7 @@
   "clipboardBillSettingDesc": "啟動或切回前台時辨識剪貼簿裡的帳單，彈窗確認後再入帳；剪貼簿內容會傳給你設定的 AI 服務商處理",
   "clipboardBillDialogTitle": "剪貼簿有可記的帳",
   "clipboardBillAmountLabel": "金額",
+  "clipboardBillTypeLabel": "類型",
   "clipboardBillCategoryLabel": "分類",
   "clipboardBillNoteLabel": "備註",
   "clipboardBillLedgerLabel": "帳本",

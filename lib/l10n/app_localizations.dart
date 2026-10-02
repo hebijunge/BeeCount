@@ -9386,6 +9386,12 @@ abstract class AppLocalizations {
   /// **'Amount'**
   String get clipboardBillAmountLabel;
 
+  /// No description provided for @clipboardBillTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get clipboardBillTypeLabel;
+
   /// No description provided for @clipboardBillCategoryLabel.
   ///
   /// In en, this message translates to:

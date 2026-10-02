@@ -331,17 +331,6 @@ class _BillEditor extends ConsumerWidget {
   final VoidCallback onLedgerTapped;
   final VoidCallback onRemove;
 
-  String _typeLabel(AppLocalizations l10n, BillType type) {
-    switch (type) {
-      case BillType.income:
-        return l10n.clipboardBillTypeIncome;
-      case BillType.expense:
-        return l10n.clipboardBillTypeExpense;
-      case BillType.transfer:
-        return l10n.clipboardBillTypeTransfer;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -358,39 +347,16 @@ class _BillEditor extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                // Wrap 而不是 SegmentedButton：大字号下分段按钮会把内容挤成 0 宽。
-                child: Wrap(
-                  spacing: 6,
-                  children: [
-                    for (final type in BillType.values)
-                      ChoiceChip(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        label: Text(_typeLabel(l10n, type)),
-                        selected: item.type == type,
-                        onSelected: (selected) {
-                          if (selected && item.type != type) {
-                            onTypeChanged(type);
-                          }
-                        },
-                      ),
-                  ],
-                ),
+          if (canRemove)
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                onPressed: onRemove,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.close_outlined, size: 18),
+                tooltip: l10n.commonDelete,
               ),
-              if (canRemove)
-                IconButton(
-                  onPressed: onRemove,
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.close_outlined, size: 18),
-                  tooltip: l10n.commonDelete,
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
+            ),
           TextField(
             controller: item.amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -418,6 +384,11 @@ class _BillEditor extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 4),
+          _TypeRow(
+            label: l10n.clipboardBillTypeLabel,
+            value: item.type,
+            onChanged: onTypeChanged,
+          ),
           _PickerRow(
             label: l10n.clipboardBillCategoryLabel,
             value: item.categoryName ?? l10n.commonUncategorized,
@@ -429,6 +400,76 @@ class _BillEditor extends ConsumerWidget {
                 ? '#${item.ledgerId}'
                 : translateLedgerName(context, ledger.name),
             onTap: onLedgerTapped,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 收/支/转账下拉。放在分类上一行：换类型会清空分类，顺序上也该先定类型再选分类。
+class _TypeRow extends StatelessWidget {
+  const _TypeRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final BillType value;
+  final ValueChanged<BillType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    String text(BillType type) {
+      switch (type) {
+        case BillType.income:
+          return l10n.clipboardBillTypeIncome;
+        case BillType.expense:
+          return l10n.clipboardBillTypeExpense;
+        case BillType.transfer:
+          return l10n.clipboardBillTypeTransfer;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: BeeTokens.textSecondary(context)),
+            ),
+          ),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<BillType>(
+                value: value,
+                isExpanded: true,
+                borderRadius: BorderRadius.circular(12),
+                dropdownColor: BeeTokens.surfaceElevated(context),
+                items: [
+                  for (final type in BillType.values)
+                    DropdownMenuItem(
+                      value: type,
+                      child: Text(
+                        text(type),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: BeeTokens.textPrimary(context)),
+                      ),
+                    ),
+                ],
+                onChanged: (next) {
+                  if (next != null && next != value) onChanged(next);
+                },
+              ),
+            ),
           ),
         ],
       ),

@@ -102,6 +102,21 @@ void main() {
     expect(result, isNull);
   });
 
+  testWidgets('类型是下拉，且排在分类上一行', (tester) async {
+    int? result;
+    await pumpDialog(tester, bills: twoBills(), onResult: (v) => result = v);
+
+    // 收起状态下只显示当前值，不铺开三个选项
+    expect(find.byIcon(Icons.arrow_drop_down), findsNWidgets(2));
+    expect(find.widgetWithText(DropdownMenuItem, '转账'), findsNothing);
+
+    final typeY = tester.getRect(find.text('类型').first).center.dy;
+    final categoryY = tester.getRect(find.text('分类').first).center.dy;
+    final ledgerY = tester.getRect(find.text('账本').first).center.dy;
+    expect(typeY, lessThan(categoryY));
+    expect(categoryY, lessThan(ledgerY));
+  });
+
   /// 落库路径上 `LoggerService` 会排一个 2s 防抖 Timer，不推进时钟的话
   /// widget 测试结束时会因 pending timer 报 `!timersPending`。
   Future<void> drainLoggerTimer(WidgetTester tester) =>
@@ -130,10 +145,17 @@ void main() {
 
   testWidgets('改收/支类型会把分类清空，不留会被兜底成「其他」的假象', (tester) async {
     int? result;
-    await pumpDialog(tester, bills: twoBills(), onResult: (v) => result = v);
+    // 用单笔：两笔时另一笔收起态的下拉本身就显示「收入」，菜单项会被撞。
+    await pumpDialog(
+      tester,
+      bills: [twoBills().first],
+      onResult: (v) => result = v,
+    );
 
-    // 第一笔原本是支出、分类「交通」，改成收入
-    await tester.tap(find.text('收入').first);
+    // 原本是支出、分类「交通」。类型是下拉，要先展开再选。
+    await tester.tap(find.byIcon(Icons.arrow_drop_down));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('收入'));
     await tester.pumpAndSettle();
 
     expect(find.text('交通'), findsNothing);

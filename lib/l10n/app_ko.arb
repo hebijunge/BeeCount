@@ -1481,6 +1481,7 @@
   "clipboardBillSettingDesc": "앱 시작 또는 포그라운드로 돌아올 때 클립보드의 청구서를 확인하고 확인 후 기록합니다. 클립보드 내용은 설정한 AI 서비스 제공업체로 전송됩니다.",
   "clipboardBillDialogTitle": "클립보드에 기록할 내역이 있습니다",
   "clipboardBillAmountLabel": "금액",
+  "clipboardBillTypeLabel": "유형",
   "clipboardBillCategoryLabel": "분류",
   "clipboardBillNoteLabel": "메모",
   "clipboardBillLedgerLabel": "가계부",

@@ -4915,6 +4915,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clipboardBillAmountLabel => '금액';
 
   @override
+  String get clipboardBillTypeLabel => '유형';
+
+  @override
   String get clipboardBillCategoryLabel => '분류';
 
   @override

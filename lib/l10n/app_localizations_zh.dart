@@ -4915,6 +4915,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clipboardBillAmountLabel => '金额';
 
   @override
+  String get clipboardBillTypeLabel => '类型';
+
+  @override
   String get clipboardBillCategoryLabel => '分类';
 
   @override
@@ -13035,6 +13038,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get clipboardBillAmountLabel => '金額';
+
+  @override
+  String get clipboardBillTypeLabel => '類型';
 
   @override
   String get clipboardBillCategoryLabel => '分類';

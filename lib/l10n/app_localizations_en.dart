@@ -4915,6 +4915,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clipboardBillAmountLabel => 'Amount';
 
   @override
+  String get clipboardBillTypeLabel => 'Type';
+
+  @override
   String get clipboardBillCategoryLabel => 'Category';
 
   @override

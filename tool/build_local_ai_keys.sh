@@ -10,6 +10,10 @@
 #   BEE_AI_KEY_INTERN     书生·端砚
 #   BEE_AI_KEY_KILO       Kilo 免费池
 #   BEE_AI_KEY_AMD        AMD Radeon 免费池（localOnly：不注入就不出现）
+#   BEE_AI_KEY_AGNES      Agnes
+#   BEE_AI_KEY_SENSENOVA  商汤 SenseNova
+#   BEE_AI_KEY_POLLINATIONS  Pollinations
+#   BEE_AI_KEY_ZAI        智谱 Z.ai 国际站
 # 缺哪个就少注入哪个，其余照常。
 #
 # 这个文件已在 .gitignore 里，仓库和 GitHub 上的包永远不含 key。
@@ -29,7 +33,18 @@ read_key() {
 }
 
 DEFINE=()
-for pair in "zhipu:BEE_AI_KEY_ZHIPU" "requesty:BEE_AI_KEY_REQUESTY" "dots:BEE_AI_KEY_DOTS" "intern:BEE_AI_KEY_INTERN" "kilo:BEE_AI_KEY_KILO" "amd:BEE_AI_KEY_AMD"; do
+for pair in \
+    "zhipu:BEE_AI_KEY_ZHIPU" \
+    "requesty:BEE_AI_KEY_REQUESTY" \
+    "dots:BEE_AI_KEY_DOTS" \
+    "intern:BEE_AI_KEY_INTERN" \
+    "kilo:BEE_AI_KEY_KILO" \
+    "amd:BEE_AI_KEY_AMD" \
+    "agnes:BEE_AI_KEY_AGNES" \
+    "sensenova:BEE_AI_KEY_SENSENOVA" \
+    "pollinations:BEE_AI_KEY_POLLINATIONS" \
+    "zai:BEE_AI_KEY_ZAI" \
+    ; do
   name="${pair#*:}"
   value="$(read_key "$name")"
   if [ -n "$value" ]; then

@@ -12842,6 +12842,30 @@ abstract class AppLocalizations {
   /// **'AMD free pool: its terms forbid resell/proxy and production use, so it only shows up in builds you compile yourself with an injected key; about 20 requests/min.'**
   String get aiProviderPresetNoteAmd;
 
+  /// No description provided for @aiProviderPresetNoteAgnes.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastest measured: extract 1.9s, tool call 1.2s, screenshot 0.9s; but TLS to this domain is intermittently intercepted on some networks'**
+  String get aiProviderPresetNoteAgnes;
+
+  /// No description provided for @aiProviderPresetNoteSensenova.
+  ///
+  /// In en, this message translates to:
+  /// **'Free during public beta, credits reset every 5 hours and weekly; rate limit is tight (about 1 request/sec), back-to-back calls get 402/429'**
+  String get aiProviderPresetNoteSensenova;
+
+  /// No description provided for @aiProviderPresetNotePollinations.
+  ///
+  /// In en, this message translates to:
+  /// **'Free tier is a one-off Quest Pollen allowance, not a per-minute quota: once it drains every call returns 402'**
+  String get aiProviderPresetNotePollinations;
+
+  /// No description provided for @aiProviderPresetNoteZai.
+  ///
+  /// In en, this message translates to:
+  /// **'A separate account pool from bigmodel.cn, so one more free quota; only flash models work at zero balance, measured extract 64s and tools 30s, slow'**
+  String get aiProviderPresetNoteZai;
+
   /// No description provided for @aiCapabilityText.
   ///
   /// In en, this message translates to:

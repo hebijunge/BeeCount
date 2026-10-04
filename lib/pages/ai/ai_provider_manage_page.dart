@@ -29,6 +29,14 @@ String? aiProviderPresetNote(AppLocalizations l10n, String id) {
       return l10n.aiProviderPresetNoteKilo;
     case 'amd_radeon':
       return l10n.aiProviderPresetNoteAmd;
+    case 'agnes':
+      return l10n.aiProviderPresetNoteAgnes;
+    case 'sensenova':
+      return l10n.aiProviderPresetNoteSensenova;
+    case 'pollinations':
+      return l10n.aiProviderPresetNotePollinations;
+    case 'z_ai':
+      return l10n.aiProviderPresetNoteZai;
     default:
       return null;
   }

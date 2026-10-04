@@ -26,6 +26,10 @@ const _envByPreset = <String, String>{
   'intern_discovery': 'INTERN_API_KEY',
   'kilo_free': 'KILO_API_KEY',
   'amd_radeon': 'AMD_API_KEY',
+  'agnes': 'AGNES_API_KEY',
+  'sensenova': 'SENSENOVA_API_KEY',
+  'pollinations': 'POLLINATIONS_API_KEY',
+  'z_ai': 'ZAI_API_KEY',
 };
 
 const _extractText = '今天上午在公司楼下全家便利店买咖啡和面包 32 元，'

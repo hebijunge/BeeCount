@@ -6737,6 +6737,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiProviderPresetNoteAmd => 'AMD free pool: its terms forbid resell/proxy and production use, so it only shows up in builds you compile yourself with an injected key; about 20 requests/min.';
 
   @override
+  String get aiProviderPresetNoteAgnes => 'Fastest measured: extract 1.9s, tool call 1.2s, screenshot 0.9s; but TLS to this domain is intermittently intercepted on some networks';
+
+  @override
+  String get aiProviderPresetNoteSensenova => 'Free during public beta, credits reset every 5 hours and weekly; rate limit is tight (about 1 request/sec), back-to-back calls get 402/429';
+
+  @override
+  String get aiProviderPresetNotePollinations => 'Free tier is a one-off Quest Pollen allowance, not a per-minute quota: once it drains every call returns 402';
+
+  @override
+  String get aiProviderPresetNoteZai => 'A separate account pool from bigmodel.cn, so one more free quota; only flash models work at zero balance, measured extract 64s and tools 30s, slow';
+
+  @override
   String get aiCapabilityText => 'Text';
 
   @override

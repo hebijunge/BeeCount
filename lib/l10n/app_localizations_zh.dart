@@ -6731,6 +6731,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiProviderPresetNoteAmd => 'AMD 免费池：条款禁 resell/proxy、不可用于生产，所以只出现在你自己构建、且注入过 key 的包里；约 20 次/分钟';
 
   @override
+  String get aiProviderPresetNoteAgnes => '实测最快：抽取 1.9s、工具 1.2s、读图 0.9s；但到该域名的 TLS 间歇被掐，不通时表现为连接失败';
+
+  @override
+  String get aiProviderPresetNoteSensenova => '公测免费，积分按 5 小时和每周重置；限流很紧（约 1 次/秒），连发就 429';
+
+  @override
+  String get aiProviderPresetNotePollinations => '免费是一次性 Quest Pollen 津贴，扣完全线 402，不是按分钟恢复的额度';
+
+  @override
+  String get aiProviderPresetNoteZai => '与国内 bigmodel 独立账号池，多一份免费额度；0 余额只可调 flash 系；实测抽取 64s、工具 30s，偏慢';
+
+  @override
   String get aiCapabilityText => '文本';
 
   @override
@@ -14636,6 +14648,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiProviderPresetNoteAmd => 'AMD 免費池：條款禁 resell/proxy、不可用於生產，所以只出現在你自己建置、且注入過金鑰的套件裡；約 20 次/分鐘';
+
+  @override
+  String get aiProviderPresetNoteAgnes => '實測最快：抽取 1.9 秒、工具 1.2 秒、讀圖 0.9 秒；但到該網域的 TLS 間歇被掐，不通時顯示連線失敗';
+
+  @override
+  String get aiProviderPresetNoteSensenova => '公測免費，積分依 5 小時與每週重設；限流很緊（約 1 次/秒），連發就 429';
+
+  @override
+  String get aiProviderPresetNotePollinations => '免費是一次性的 Quest Pollen 津貼，扣完全線 402，不是按分鐘恢復的額度';
+
+  @override
+  String get aiProviderPresetNoteZai => '與國內 bigmodel 獨立帳號池，多一份免費額度；0 餘額僅可调 flash 系；實測抽取 64 秒、工具 30 秒，偏慢';
 
   @override
   String get aiCapabilityText => '文字';

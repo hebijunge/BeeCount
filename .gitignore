@@ -68,3 +68,6 @@ tmp
 
 # 本地设计原型（不提交）
 design-prototypes/
+
+# 本机 AI key（构建期注入，绝不提交）
+ai_keys.local.env

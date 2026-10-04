@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -130,6 +131,58 @@ void main() {
       final providers = await AIProviderManager.getProviders();
       expect(providers.first.id, 'zhipu_glm');
       expect(providers.length, kAiProviderPresets.length);
+    });
+  });
+
+  group('构建期注入的本机 key', () {
+    test('只给还没配 key 的服务商填，填过的不动', () {
+      final providers = [
+        AIServiceProviderConfig.zhipuDefault.copyWith(apiKey: 'user-own'),
+        aiPresetById('requesty_free')!.toProvider(),
+        aiPresetById('xiaohongshu_dots')!.toProvider().copyWith(apiKey: ''),
+      ];
+      final (filled, changed) = AIProviderManager.applyLocalApiKeys(providers, {
+        'zhipu_glm': 'injected',
+        'requesty_free': 'injected',
+        'xiaohongshu_dots': 'injected',
+        'not_a_preset': 'injected',
+      });
+
+      expect(changed, isTrue);
+      expect(filled[0].apiKey, 'user-own');
+      expect(filled[1].apiKey, 'injected');
+      expect(filled[2].apiKey, 'injected');
+    });
+
+    test('没注入（空 map / 空串）时不改内容，也不触发落库', () {
+      final providers = [aiPresetById('requesty_free')!.toProvider()];
+      final (same, changed) =
+          AIProviderManager.applyLocalApiKeys(providers, const {});
+      expect(changed, isFalse);
+      expect(same.single.apiKey, isEmpty);
+
+      expect(
+          AIProviderManager
+              .applyLocalApiKeys(providers, {'requesty_free': ''})
+              .$2,
+          isFalse);
+    });
+
+    test('补齐预设时一并带上注入的 key', () async {
+      SharedPreferences.setMockInitialValues({});
+      final providers = await AIProviderManager.getProviders();
+      // 普通 flutter test 不带 --dart-define，所以这里应当全是空 key；
+      // 真注入由上一条用例和构建脚本负责。
+      expect(providers.every((p) => p.apiKey.isEmpty), isTrue);
+    });
+
+    test('注入点文件里不许出现明文 key', () {
+      final src = File('lib/ai/providers/ai_provider_local_keys.dart')
+          .readAsStringSync();
+      expect(src, contains('String.fromEnvironment'));
+      // 形如 'hex.随机段' 的智谱 key、或直接把值写死成字符串字面量
+      expect(RegExp(r"'[0-9a-f]{24,}\.[A-Za-z0-9]{12,}'").hasMatch(src), isFalse);
+      expect(RegExp(r"BEE_AI_KEY_\w+'\s*,\s*'").hasMatch(src), isFalse);
     });
   });
 }

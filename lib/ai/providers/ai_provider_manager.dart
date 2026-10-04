@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_provider_config.dart';
+import 'ai_provider_local_keys.dart';
 import 'ai_provider_presets.dart';
 import 'ai_constants.dart';
 import '../../services/system/logger_service.dart';
@@ -112,11 +113,30 @@ class AIProviderManager {
         changed = true;
       }
     }
-    if (changed) {
-      logger.info(_tag, '补齐内置服务商预设');
-      await _saveProviders(merged);
+
+    final (filled, keysApplied) = applyLocalApiKeys(merged, kLocalAiApiKeys);
+    if (changed || keysApplied) {
+      logger.info(_tag, changed ? '补齐内置服务商预设' : '填入本机注入的 AI Key');
+      await _saveProviders(filled);
     }
-    return merged;
+    return filled;
+  }
+
+  /// 把构建期注入的 key 填进还没有 key 的服务商。
+  ///
+  /// 只填空白：用户自己在页面上填过的一律不动，也不去碰没在 map 里的服务商。
+  static (List<AIServiceProviderConfig>, bool) applyLocalApiKeys(
+    List<AIServiceProviderConfig> providers,
+    Map<String, String> keys,
+  ) {
+    var changed = false;
+    final filled = providers.map((p) {
+      final key = keys[p.id] ?? '';
+      if (key.isEmpty || p.apiKey.isNotEmpty) return p;
+      changed = true;
+      return p.copyWith(apiKey: key);
+    }).toList();
+    return (filled, changed);
   }
 
   /// 获取单个服务商配置

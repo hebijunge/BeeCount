@@ -65,7 +65,7 @@ class AIProviderFactory {
 
     logger.debug(tag, '发起文本对话 (${config.name}, 模型: ${config.textModel})');
 
-    if (config.isBuiltIn) {
+    if (config.usesZhipuSdk) {
       return _chatZhipu(config, prompt, systemPrompt, temperature);
     } else {
       return _chatOpenAI(config, prompt, systemPrompt, temperature);
@@ -169,7 +169,7 @@ class AIProviderFactory {
 
     logger.debug(tag, '发起图片理解 (${config.name}, 模型: ${config.visionModel})');
 
-    if (config.isBuiltIn) {
+    if (config.usesZhipuSdk) {
       return _visionZhipu(config, image, prompt);
     } else {
       return _visionOpenAI(config, image, prompt);
@@ -201,7 +201,7 @@ class AIProviderFactory {
 
     logger.debug(tag, '发起语音转文字 (${config.name}, 模型: ${config.audioModel})');
 
-    if (config.isBuiltIn) {
+    if (config.usesZhipuSdk) {
       return _speechToTextZhipu(config, audio);
     } else {
       return _speechToTextOpenAI(config, audio);
@@ -251,7 +251,7 @@ class AIProviderFactory {
 
     try {
       String response;
-      if (config.isBuiltIn) {
+      if (config.usesZhipuSdk) {
         response = await _chatZhipu(config, 'hi', null, 0.7);
       } else {
         response = await _chatOpenAI(config, 'hi', null, 0.7);
@@ -299,7 +299,7 @@ class AIProviderFactory {
 
       try {
         String response;
-        if (config.isBuiltIn) {
+        if (config.usesZhipuSdk) {
           response = await _visionZhipu(config, testImage, '描述这张图片');
         } else {
           response = await _visionOpenAI(config, testImage, '描述这张图片');
@@ -352,7 +352,7 @@ class AIProviderFactory {
       await testAudio.writeAsBytes(testAudioBytes);
 
       try {
-        if (config.isBuiltIn) {
+        if (config.usesZhipuSdk) {
           await _speechToTextZhipu(config, testAudio);
         } else {
           await _speechToTextOpenAI(config, testAudio);

@@ -2945,6 +2945,20 @@
   "aiProviderBaseUrlRequired": "Please enter Base URL",
   "aiProviderModels": "Model Configuration",
   "aiProviderModelsHint": "Empty capabilities cannot use this provider",
+  "aiProviderPresetEditableHint": "Built into the app - name, address and models are all editable; only the API key is yours to add.",
+  "aiProviderPresetModelsLabel": "Verified working - tap to fill in",
+  "aiProviderPresetRestore": "Restore defaults",
+  "aiProviderPresetRestoreConfirm": "Restore the app built-in address and models for \"{name}\"? Your API key is kept.",
+  "@aiProviderPresetRestoreConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiProviderPresetNoteZhipu": "Free GLM-*-Flash models; the only provider that supports speech-to-text.",
+  "aiProviderPresetNoteRequesty": "Free tier is shared per account: about 15 requests/min, and NVIDIA models keep inputs for 30 days.",
+  "aiProviderPresetNoteDots": "Free multimodal, reads payment screenshots; per its terms your input may be used to improve the service.",
   "aiCapabilityText": "Text",
   "aiCapabilityVision": "Vision",
   "aiCapabilitySpeech": "Speech",

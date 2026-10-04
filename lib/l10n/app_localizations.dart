@@ -12782,6 +12782,48 @@ abstract class AppLocalizations {
   /// **'Empty capabilities cannot use this provider'**
   String get aiProviderModelsHint;
 
+  /// No description provided for @aiProviderPresetEditableHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Built into the app - name, address and models are all editable; only the API key is yours to add.'**
+  String get aiProviderPresetEditableHint;
+
+  /// No description provided for @aiProviderPresetModelsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified working - tap to fill in'**
+  String get aiProviderPresetModelsLabel;
+
+  /// No description provided for @aiProviderPresetRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get aiProviderPresetRestore;
+
+  /// No description provided for @aiProviderPresetRestoreConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore the app built-in address and models for \"{name}\"? Your API key is kept.'**
+  String aiProviderPresetRestoreConfirm(String name);
+
+  /// No description provided for @aiProviderPresetNoteZhipu.
+  ///
+  /// In en, this message translates to:
+  /// **'Free GLM-*-Flash models; the only provider that supports speech-to-text.'**
+  String get aiProviderPresetNoteZhipu;
+
+  /// No description provided for @aiProviderPresetNoteRequesty.
+  ///
+  /// In en, this message translates to:
+  /// **'Free tier is shared per account: about 15 requests/min, and NVIDIA models keep inputs for 30 days.'**
+  String get aiProviderPresetNoteRequesty;
+
+  /// No description provided for @aiProviderPresetNoteDots.
+  ///
+  /// In en, this message translates to:
+  /// **'Free multimodal, reads payment screenshots; per its terms your input may be used to improve the service.'**
+  String get aiProviderPresetNoteDots;
+
   /// No description provided for @aiCapabilityText.
   ///
   /// In en, this message translates to:

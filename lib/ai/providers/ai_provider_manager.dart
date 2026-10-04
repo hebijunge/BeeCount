@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_provider_config.dart';
+import 'ai_provider_presets.dart';
 import 'ai_constants.dart';
 import '../../services/system/logger_service.dart';
 
@@ -50,9 +51,7 @@ class AIProviderManager {
       final migratedStr = prefs.getString(_keyProviders);
       if (migratedStr == null || migratedStr.isEmpty) {
         // 如果迁移后仍为空，初始化默认服务商
-        final defaultProviders = [AIServiceProviderConfig.zhipuDefault];
-        await _saveProviders(defaultProviders);
-        return defaultProviders;
+        return _appendPresets([AIServiceProviderConfig.zhipuDefault]);
       }
       // 迁移成功，继续解析
       return _parseProviders(migratedStr);
@@ -92,11 +91,32 @@ class AIProviderManager {
         }
       }
 
-      return providers;
+      return _appendPresets(providers);
     } catch (e, st) {
       logger.error(_tag, '解析服务商配置失败', e, st);
-      return [AIServiceProviderConfig.zhipuDefault];
+      return _appendPresets([AIServiceProviderConfig.zhipuDefault]);
     }
+  }
+
+  /// 补齐缺失的内置预设并落库。
+  ///
+  /// 只补 id 不存在的项：用户改过模型名、Base URL 的预设原样保留，
+  /// 不会因为升级被覆盖回默认值。
+  static Future<List<AIServiceProviderConfig>> _appendPresets(
+      List<AIServiceProviderConfig> providers) async {
+    var changed = false;
+    final merged = List<AIServiceProviderConfig>.of(providers);
+    for (final preset in kAiProviderPresets) {
+      if (!merged.any((p) => p.id == preset.id)) {
+        merged.add(preset.toProvider());
+        changed = true;
+      }
+    }
+    if (changed) {
+      logger.info(_tag, '补齐内置服务商预设');
+      await _saveProviders(merged);
+    }
+    return merged;
   }
 
   /// 获取单个服务商配置

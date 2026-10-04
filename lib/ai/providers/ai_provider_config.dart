@@ -26,6 +26,10 @@ class AIServiceProviderConfig {
   /// 语音模型
   final String audioModel;
 
+  /// 调用协议：决定工厂走哪套实现。
+  /// `zhipu` 走官方 SDK（语音转文字只有它有），其余按 OpenAI 兼容协议裸调。
+  final String protocol;
+
   /// 创建时间
   final DateTime createdAt;
 
@@ -38,8 +42,12 @@ class AIServiceProviderConfig {
     this.textModel = '',
     this.visionModel = '',
     this.audioModel = '',
+    this.protocol = protocolOpenAI,
     required this.createdAt,
   });
+
+  static const String protocolOpenAI = 'openai';
+  static const String protocolZhipu = 'zhipu';
 
   /// 智谱GLM 默认配置
   static AIServiceProviderConfig get zhipuDefault => AIServiceProviderConfig(
@@ -50,8 +58,12 @@ class AIServiceProviderConfig {
         textModel: 'glm-4-flash',
         visionModel: 'glm-4v-flash',
         audioModel: 'glm-4-voice',
+        protocol: protocolZhipu,
         createdAt: DateTime(2024, 1, 1),
       );
+
+  /// 是否走智谱官方 SDK
+  bool get usesZhipuSdk => protocol == protocolZhipu;
 
   /// 配置是否有效（至少有 API Key）
   bool get isValid => apiKey.isNotEmpty;
@@ -75,6 +87,7 @@ class AIServiceProviderConfig {
     String? textModel,
     String? visionModel,
     String? audioModel,
+    String? protocol,
     DateTime? createdAt,
   }) {
     return AIServiceProviderConfig(
@@ -86,6 +99,7 @@ class AIServiceProviderConfig {
       textModel: textModel ?? this.textModel,
       visionModel: visionModel ?? this.visionModel,
       audioModel: audioModel ?? this.audioModel,
+      protocol: protocol ?? this.protocol,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -101,6 +115,10 @@ class AIServiceProviderConfig {
       textModel: json['textModel'] as String? ?? '',
       visionModel: json['visionModel'] as String? ?? '',
       audioModel: json['audioModel'] as String? ?? '',
+      // 老备份里没有 protocol，而智谱的语音转文字只有官方 SDK 支持：
+      // 按 id 兜底回 zhipu，别让导入配置把语音能力静默降级成 OpenAI 裸协议。
+      protocol: json['protocol'] as String? ??
+          (json['id'] == 'zhipu_glm' ? protocolZhipu : protocolOpenAI),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
@@ -118,6 +136,7 @@ class AIServiceProviderConfig {
       'textModel': textModel,
       'visionModel': visionModel,
       'audioModel': audioModel,
+      'protocol': protocol,
       'createdAt': createdAt.toIso8601String(),
     };
   }

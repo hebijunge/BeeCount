@@ -6705,6 +6705,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiProviderModelsHint => 'Empty capabilities cannot use this provider';
 
   @override
+  String get aiProviderPresetEditableHint => 'Built into the app - name, address and models are all editable; only the API key is yours to add.';
+
+  @override
+  String get aiProviderPresetModelsLabel => 'Verified working - tap to fill in';
+
+  @override
+  String get aiProviderPresetRestore => 'Restore defaults';
+
+  @override
+  String aiProviderPresetRestoreConfirm(String name) {
+    return 'Restore the app built-in address and models for \"$name\"? Your API key is kept.';
+  }
+
+  @override
+  String get aiProviderPresetNoteZhipu => 'Free GLM-*-Flash models; the only provider that supports speech-to-text.';
+
+  @override
+  String get aiProviderPresetNoteRequesty => 'Free tier is shared per account: about 15 requests/min, and NVIDIA models keep inputs for 30 days.';
+
+  @override
+  String get aiProviderPresetNoteDots => 'Free multimodal, reads payment screenshots; per its terms your input may be used to improve the service.';
+
+  @override
   String get aiCapabilityText => 'Text';
 
   @override

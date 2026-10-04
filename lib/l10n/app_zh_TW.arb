@@ -2530,6 +2530,20 @@
   "aiProviderBaseUrlRequired": "請輸入 Base URL",
   "aiProviderModels": "模型設定",
   "aiProviderModelsHint": "留空的能力將無法使用該服務商",
+  "aiProviderPresetEditableHint": "內建在應用裡，名稱、網址與模型都可修改，只有 API Key 需要你自己申請",
+  "aiProviderPresetModelsLabel": "實測可用（點一下填入）",
+  "aiProviderPresetRestore": "恢復預設",
+  "aiProviderPresetRestoreConfirm": "把「{name}」的網址與模型改回應用內建的預設值？API Key 會保留。",
+  "@aiProviderPresetRestoreConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiProviderPresetNoteZhipu": "GLM-*-Flash 免費；語音轉文字目前只有它支援",
+  "aiProviderPresetNoteRequesty": "免費池按帳號共用，約 15 次/分鐘，NVIDIA 系列模型會保留輸入 30 天",
+  "aiProviderPresetNoteDots": "免費多模態，可讀支付截圖；依對方協議，你的輸入可能用於其服務優化",
   "aiCapabilityText": "文字",
   "aiCapabilityVision": "視覺",
   "aiCapabilitySpeech": "語音",

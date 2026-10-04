@@ -6699,6 +6699,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiProviderModelsHint => '留空的能力将无法使用该服务商';
 
   @override
+  String get aiProviderPresetEditableHint => '内置在应用里，名称、地址和模型都能改，只有 API Key 需要你自己申请';
+
+  @override
+  String get aiProviderPresetModelsLabel => '实测可用（点一下填入）';
+
+  @override
+  String get aiProviderPresetRestore => '恢复默认';
+
+  @override
+  String aiProviderPresetRestoreConfirm(String name) {
+    return '把「$name」的地址和模型改回应用内置的默认值？API Key 会保留。';
+  }
+
+  @override
+  String get aiProviderPresetNoteZhipu => 'GLM-*-Flash 免费；语音转文字目前只有它支持';
+
+  @override
+  String get aiProviderPresetNoteRequesty => '免费池按账号共享，约 15 次/分钟，NVIDIA 系模型会留存输入 30 天';
+
+  @override
+  String get aiProviderPresetNoteDots => '免费多模态，能读支付截图；按对方协议，你的输入可能用于其服务优化';
+
+  @override
   String get aiCapabilityText => '文本';
 
   @override
@@ -14558,6 +14581,29 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiProviderModelsHint => '留空的能力將無法使用該服務商';
+
+  @override
+  String get aiProviderPresetEditableHint => '內建在應用裡，名稱、網址與模型都可修改，只有 API Key 需要你自己申請';
+
+  @override
+  String get aiProviderPresetModelsLabel => '實測可用（點一下填入）';
+
+  @override
+  String get aiProviderPresetRestore => '恢復預設';
+
+  @override
+  String aiProviderPresetRestoreConfirm(String name) {
+    return '把「$name」的網址與模型改回應用內建的預設值？API Key 會保留。';
+  }
+
+  @override
+  String get aiProviderPresetNoteZhipu => 'GLM-*-Flash 免費；語音轉文字目前只有它支援';
+
+  @override
+  String get aiProviderPresetNoteRequesty => '免費池按帳號共用，約 15 次/分鐘，NVIDIA 系列模型會保留輸入 30 天';
+
+  @override
+  String get aiProviderPresetNoteDots => '免費多模態，可讀支付截圖；依對方協議，你的輸入可能用於其服務優化';
 
   @override
   String get aiCapabilityText => '文字';

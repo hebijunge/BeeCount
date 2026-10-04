@@ -6705,6 +6705,29 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiProviderModelsHint => '비어 있는 기능은 이 제공업체를 사용할 수 없습니다';
 
   @override
+  String get aiProviderPresetEditableHint => '앱에 기본 포함 - 이름, 주소, 모델 모두 수정 가능하며 API 키만 직접 입력하면 됩니다';
+
+  @override
+  String get aiProviderPresetModelsLabel => '실측 가능한 모델 (눌러서 입력)';
+
+  @override
+  String get aiProviderPresetRestore => '기본값 복원';
+
+  @override
+  String aiProviderPresetRestoreConfirm(String name) {
+    return '\"$name\"의 주소와 모델을 앱 기본값으로 되돌리시나요? API 키는 유지됩니다.';
+  }
+
+  @override
+  String get aiProviderPresetNoteZhipu => 'GLM-*-Flash 무료; 음성-텍스트 변환은 이 제공업체만 지원합니다';
+
+  @override
+  String get aiProviderPresetNoteRequesty => '무료 풀은 계정당 공유이며 약 15회/분, NVIDIA 모델은 입력을 30일간 보관합니다';
+
+  @override
+  String get aiProviderPresetNoteDots => '무료 멀티모달, 결제 스크린샷을 읽을 수 있습니다; 약관에 따라 입력이 서비스 개선에 사용될 수 있습니다';
+
+  @override
   String get aiCapabilityText => '텍스트';
 
   @override

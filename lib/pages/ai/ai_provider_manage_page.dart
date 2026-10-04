@@ -9,10 +9,24 @@ import '../../utils/ui_scale_extensions.dart';
 import '../../providers/theme_providers.dart';
 import '../../ai/providers/ai_provider_config.dart';
 import '../../ai/providers/ai_provider_manager.dart';
+import '../../ai/providers/ai_provider_presets.dart';
 import '../../ai/providers/ai_provider_factory.dart';
-import '../../ai/providers/ai_constants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/website_urls.dart';
+
+/// 内置预设的一句话说明。写的是实测结论（限流、留存、能力），不是宣传语。
+String? aiProviderPresetNote(AppLocalizations l10n, String id) {
+  switch (id) {
+    case 'zhipu_glm':
+      return l10n.aiProviderPresetNoteZhipu;
+    case 'requesty_free':
+      return l10n.aiProviderPresetNoteRequesty;
+    case 'xiaohongshu_dots':
+      return l10n.aiProviderPresetNoteDots;
+    default:
+      return null;
+  }
+}
 
 /// AI 服务商管理刷新 Provider
 final aiProviderListRefreshProvider = StateProvider<int>((ref) => 0);
@@ -161,6 +175,19 @@ class _AIProviderManagePageState extends ConsumerState<AIProviderManagePage> {
                     ),
                 ],
               ),
+
+              // 预设说明：实测到的限流 / 数据留存 / 能力差异
+              if (aiProviderPresetNote(l10n, provider.id) != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  aiProviderPresetNote(l10n, provider.id)!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: BeeTokens.textSecondary(context),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
 
               // 配置状态
@@ -361,6 +388,11 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
 
   bool get _isEditing => widget.provider != null;
   bool get _isBuiltIn => widget.provider?.isBuiltIn ?? false;
+
+  /// 该服务商对应的内置预设（自建服务商为 null）。
+  AIModelPreset? get _preset => aiPresetById(widget.provider?.id ?? '');
+  bool get _hasPreset => _preset != null;
+
   bool get _isTesting =>
       _textTestStatus == TestStatus.testing ||
       _visionTestStatus == TestStatus.testing ||
@@ -402,6 +434,14 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
             title: _isEditing ? l10n.aiProviderEditTitle : l10n.aiProviderAddTitle,
             showBack: true,
             actions: [
+              if (_hasPreset)
+                TextButton(
+                  onPressed: _saving || _isTesting ? null : _restorePreset,
+                  child: Text(
+                    l10n.aiProviderPresetRestore,
+                    style: TextStyle(fontSize: 13, color: BeeTokens.textSecondary(context)),
+                  ),
+                ),
               TextButton(
                 onPressed: _saving || _isTesting ? null : _saveProvider,
                 child: _saving
@@ -447,10 +487,22 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                         ),
                         const SizedBox(height: 16),
 
+                        // 内置预设的说明（名称/地址/模型都可改）
+                        if (_hasPreset) ...[
+                          Text(
+                            l10n.aiProviderPresetEditableHint,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.35,
+                              color: BeeTokens.textTertiary(context),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+
                         // 名称
                         TextField(
                           controller: _nameController,
-                          enabled: !_isBuiltIn,
                           decoration: InputDecoration(
                             labelText: l10n.aiProviderName,
                             hintText: l10n.aiProviderNameHint,
@@ -463,14 +515,14 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Base URL（内置服务商不可编辑）
+                        // Base URL
                         TextField(
                           controller: _baseUrlController,
-                          enabled: !_isBuiltIn,
                           decoration: InputDecoration(
                             labelText: 'Base URL',
                             hintText: 'https://api.example.com/v1',
-                            helperText: _isBuiltIn ? null : l10n.aiCustomBaseUrlHelper,
+                            helperText: l10n.aiCustomBaseUrlHelper,
+                            helperMaxLines: 2,
                             border: const OutlineInputBorder(),
                             isDense: true,
                             focusedBorder: OutlineInputBorder(
@@ -535,29 +587,32 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                           ),
                         ],
 
-                        // 内置服务商显示获取Key和教程链接
+                        // 内置服务商显示说明、获取Key和教程链接
                         if (_isBuiltIn) ...[
                           const SizedBox(height: 8),
                           Text(
-                            l10n.aiCloudApiKeyHelper,
+                            aiProviderPresetNote(l10n, widget.provider?.id ?? '') ??
+                                l10n.aiCloudApiKeyHelper,
                             style: TextStyle(
                               fontSize: 12,
+                              height: 1.35,
                               color: BeeTokens.textTertiary(context),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              TextButton.icon(
-                                onPressed: _openGlmWebsite,
-                                icon: const Icon(Icons.open_in_new, size: 16),
-                                label: Text(l10n.aiCloudApiGetKey),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: primaryColor,
-                                  textStyle: const TextStyle(fontSize: 13),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                              if ((_preset?.keyUrl ?? '').isNotEmpty)
+                                TextButton.icon(
+                                  onPressed: () => _openKeyPage(_preset!.keyUrl),
+                                  icon: const Icon(Icons.open_in_new, size: 16),
+                                  label: Text(l10n.aiCloudApiGetKey),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: primaryColor,
+                                    textStyle: const TextStyle(fontSize: 13),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  ),
                                 ),
-                              ),
                               const Spacer(),
                               TextButton.icon(
                                 onPressed: _openTutorial,
@@ -608,10 +663,11 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                         _buildModelInputWithTest(
                           controller: _textModelController,
                           label: l10n.aiTextModelTitle,
-                          hintText: _isBuiltIn ? AIConstants.defaultGlmModel : 'gpt-4o-mini',
+                          hintText: _preset?.textModel ?? 'gpt-4o-mini',
                           testStatus: _textTestStatus,
                           testError: _textTestError,
                           onTest: _testTextCapability,
+                          choices: _preset?.textModelChoices ?? const [],
                         ),
                         const SizedBox(height: 16),
 
@@ -619,10 +675,13 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                         _buildModelInputWithTest(
                           controller: _visionModelController,
                           label: l10n.aiVisionModelTitle,
-                          hintText: _isBuiltIn ? AIConstants.defaultGlmVisionModel : 'gpt-4o',
+                          hintText: _preset?.visionModel.isNotEmpty == true
+                              ? _preset!.visionModel
+                              : 'gpt-4o',
                           testStatus: _visionTestStatus,
                           testError: _visionTestError,
                           onTest: _testVisionCapability,
+                          choices: _preset?.visionModelChoices ?? const [],
                         ),
                         const SizedBox(height: 16),
 
@@ -630,10 +689,13 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                         _buildModelInputWithTest(
                           controller: _audioModelController,
                           label: l10n.aiAudioModelTitle,
-                          hintText: _isBuiltIn ? AIConstants.defaultGlmAudioModel : 'whisper-1',
+                          hintText: _preset?.audioModel.isNotEmpty == true
+                              ? _preset!.audioModel
+                              : 'whisper-1',
                           testStatus: _speechTestStatus,
                           testError: _speechTestError,
                           onTest: _testSpeechCapability,
+                          choices: _preset?.audioModelChoices ?? const [],
                         ),
 
                         // 一键测试按钮
@@ -664,6 +726,10 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
       textModel: _textModelController.text,
       visionModel: _visionModelController.text,
       audioModel: _audioModelController.text,
+      // 测试按钮要走和真实调用相同的协议分支，否则智谱的语音测试会打到
+      // OpenAI 的 /audio/transcriptions 上，报一个用户看不懂的错。
+      protocol: widget.provider?.protocol ??
+          (_preset?.protocol ?? AIServiceProviderConfig.protocolOpenAI),
       createdAt: widget.provider?.createdAt ?? DateTime.now(),
     );
   }
@@ -773,27 +839,25 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
   Future<void> _saveProvider() async {
     final l10n = AppLocalizations.of(context);
 
-    // 验证必填项
-    if (!_isBuiltIn) {
-      if (_nameController.text.trim().isEmpty) {
-        showToast(context, l10n.aiProviderNameRequired);
-        return;
-      }
-      if (_baseUrlController.text.trim().isEmpty) {
-        showToast(context, l10n.aiProviderBaseUrlRequired);
-        return;
-      }
+    // 内置预设的 Base URL 也能改了，名称和地址就一律必填
+    if (_nameController.text.trim().isEmpty) {
+      showToast(context, l10n.aiProviderNameRequired);
+      return;
+    }
+    if (_baseUrlController.text.trim().isEmpty) {
+      showToast(context, l10n.aiProviderBaseUrlRequired);
+      return;
     }
 
     setState(() => _saving = true);
 
     try {
       if (_isEditing) {
-        // 更新现有服务商
+        // 更新现有服务商（protocol 不在表单里，原样带着，别把智谱的 SDK 路由弄丢）
         final updated = widget.provider!.copyWith(
-          name: _isBuiltIn ? null : _nameController.text.trim(),
+          name: _nameController.text.trim(),
           apiKey: _apiKeyController.text.trim(),
-          baseUrl: _isBuiltIn ? null : _baseUrlController.text.trim(),
+          baseUrl: _baseUrlController.text.trim(),
           textModel: _textModelController.text.trim(),
           visionModel: _visionModelController.text.trim(),
           audioModel: _audioModelController.text.trim(),
@@ -834,6 +898,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
     required TestStatus testStatus,
     String? testError,
     required VoidCallback onTest,
+    List<String> choices = const <String>[],
   }) {
     final primaryColor = ref.watch(primaryColorProvider);
     final l10n = AppLocalizations.of(context);
@@ -871,6 +936,8 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
           ),
           onChanged: (_) => setState(() {}),
         ),
+        // 实测可用的候选模型，点一下填进上面的输入框
+        if (choices.isNotEmpty) _buildModelChoices(controller, choices),
         // 错误信息
         if (testStatus == TestStatus.failed && testError != null) ...[
           const SizedBox(height: 8),
@@ -888,6 +955,45 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
           ),
         ],
       ],
+    );
+  }
+
+  /// 预设里实测过的模型名，点一下填进输入框（仍然可以手打别的）。
+  Widget _buildModelChoices(TextEditingController controller, List<String> choices) {
+    final l10n = AppLocalizations.of(context);
+    final primaryColor = ref.watch(primaryColorProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.aiProviderPresetModelsLabel,
+            style: TextStyle(fontSize: 11, color: BeeTokens.textTertiary(context)),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final model in choices)
+                ActionChip(
+                  label: Text(model, style: const TextStyle(fontSize: 12)),
+                  labelStyle: TextStyle(color: primaryColor),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onPressed: () {
+                    controller.text = model;
+                    controller.selection =
+                        TextSelection.collapsed(offset: model.length);
+                    setState(() {});
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1027,9 +1133,44 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
     );
   }
 
-  /// 打开智谱 GLM 网站
-  Future<void> _openGlmWebsite() async {
-    final uri = Uri.parse('https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys');
+  /// 把内置预设改回的默认值（API Key 保留），改完退回列表让刷新生效。
+  Future<void> _restorePreset() async {
+    final l10n = AppLocalizations.of(context);
+    final preset = _preset;
+    final provider = widget.provider;
+    if (preset == null || provider == null) return;
+    final restoredMessage = l10n.commonSaved;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.aiProviderPresetRestore),
+        content: Text(l10n.aiProviderPresetRestoreConfirm(provider.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.commonOk),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await AIProviderManager.updateProvider(
+      preset.toProvider().copyWith(apiKey: provider.apiKey),
+    );
+    if (!mounted) return;
+    showToast(context, restoredMessage);
+    Navigator.pop(context, true);
+  }
+
+  /// 打开该服务商的 API Key 申请页
+  Future<void> _openKeyPage(String url) async {
+    final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

@@ -108,8 +108,8 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
               }
               await notifier.setEnabled(value);
               if (mounted) {
-                showToast(
-                    context, value ? l10n.aiEnableToastOn : l10n.aiEnableToastOff);
+                showToast(context,
+                    value ? l10n.aiEnableToastOn : l10n.aiEnableToastOff);
               }
             },
             title: Text(
@@ -175,7 +175,8 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
                 const SizedBox(width: 8),
                 Text(
                   l10n.aiCapabilitySelectTitle,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -266,25 +267,28 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
     required List<AIServiceProviderConfig> providers,
     required AICapabilityType capabilityType,
   }) {
+    final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 
     // 根据能力类型过滤支持的服务商
-    final supportedProviders = providers.where((p) {
-      switch (capabilityType) {
-        case AICapabilityType.text:
-          return p.supportsText;
-        case AICapabilityType.vision:
-          return p.supportsVision;
-        case AICapabilityType.speech:
-          return p.supportsSpeech;
-      }
-    }).toList();
+    final supportedProviders =
+        providers.where((p) => p.supports(capabilityType)).toList();
 
-    // 查找当前选中的服务商
-    final currentProvider = providers.firstWhere(
-      (p) => p.id == currentProviderId,
-      orElse: () => AIServiceProviderConfig.zhipuDefault,
-    );
+    // 「自动」不绑死某一家：按和调用侧同一套规则现场解析出用谁
+    final isAuto = AICapabilityBinding.isAuto(currentProviderId);
+    final autoPick =
+        isAuto ? AIProviderManager.pickAuto(providers, capabilityType) : null;
+    final currentProvider = isAuto
+        ? (autoPick ?? AIServiceProviderConfig.zhipuDefault)
+        : providers.firstWhere(
+            (p) => p.id == currentProviderId,
+            orElse: () => AIServiceProviderConfig.zhipuDefault,
+          );
+    final trailingLabel = !isAuto
+        ? currentProvider.name
+        : (autoPick == null
+            ? l10n.aiCapabilityAutoNone
+            : l10n.aiCapabilityAutoUsing(autoPick.name));
 
     return ListTile(
       dense: true,
@@ -294,11 +298,16 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            currentProvider.name,
-            style: TextStyle(
-              fontSize: 13,
-              color: BeeTokens.textSecondary(context),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 170),
+            child: Text(
+              trailingLabel,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: BeeTokens.textSecondary(context),
+              ),
             ),
           ),
           const Icon(Icons.chevron_right, size: 18),
@@ -320,63 +329,98 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
     required AICapabilityType capabilityType,
   }) {
     final l10n = AppLocalizations.of(context);
-    final primaryColor = ref.read(primaryColorProvider);
+
+    final isAuto = AICapabilityBinding.isAuto(currentProviderId);
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: providers.map((provider) {
-              final isSelected = provider.id == currentProviderId;
-              return ListTile(
-                leading: Icon(
-                  isSelected ? Icons.check_circle : Icons.circle_outlined,
-                  color: isSelected ? primaryColor : BeeTokens.textTertiary(context),
-                ),
-                title: Text(
-                  provider.name,
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? primaryColor : BeeTokens.textPrimary(context),
+      builder: (dialogContext) {
+        Future<void> bind(String providerId, String label) async {
+          Navigator.pop(dialogContext);
+          await AIProviderManager.setCapabilityProvider(
+            capabilityType,
+            providerId,
+          );
+          ref.read(aiCapabilityBindingRefreshProvider.notifier).state++;
+          if (mounted) {
+            showToast(context, '${l10n.commonSaved}: $label');
+          }
+        }
+
+        return AlertDialog(
+          title: Text(title),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildBindingOption(
+                  selected: isAuto,
+                  name: l10n.aiCapabilityAuto,
+                  desc: l10n.aiCapabilityAutoDesc,
+                  onPick: () => bind(
+                    AICapabilityBinding.autoProviderId,
+                    l10n.aiCapabilityAuto,
                   ),
                 ),
-                subtitle: provider.isValid
-                    ? null
-                    : Text(
-                        l10n.aiProviderNoApiKey,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[700],
-                        ),
-                      ),
-                onTap: () async {
-                  Navigator.pop(dialogContext);
-                  await AIProviderManager.setCapabilityProvider(
-                    capabilityType,
-                    provider.id,
-                  );
-                  ref.read(aiCapabilityBindingRefreshProvider.notifier).state++;
-                  if (mounted) {
-                    showToast(context, '${l10n.commonSaved}: ${provider.name}');
-                  }
-                },
-              );
-            }).toList(),
+                for (final provider in providers)
+                  _buildBindingOption(
+                    selected: provider.id == currentProviderId,
+                    name: provider.name,
+                    desc: provider.isValid ? null : l10n.aiProviderNoApiKey,
+                    warn: !provider.isValid,
+                    onPick: () => bind(provider.id, provider.name),
+                  ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.commonCancel),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.commonCancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 绑定选择弹窗里的一行（「自动」和各服务商共用）
+  Widget _buildBindingOption({
+    required bool selected,
+    required String name,
+    String? desc,
+    bool warn = false,
+    required VoidCallback onPick,
+  }) {
+    final primaryColor = ref.read(primaryColorProvider);
+
+    return ListTile(
+      leading: Icon(
+        selected ? Icons.check_circle : Icons.circle_outlined,
+        color: selected ? primaryColor : BeeTokens.textTertiary(context),
       ),
+      title: Text(
+        name,
+        style: TextStyle(
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          color: selected ? primaryColor : BeeTokens.textPrimary(context),
+        ),
+      ),
+      subtitle: desc == null
+          ? null
+          : Text(
+              desc,
+              style: TextStyle(
+                fontSize: 12,
+                color:
+                    warn ? Colors.orange[700] : BeeTokens.textTertiary(context),
+              ),
+            ),
+      onTap: onPick,
     );
   }
 

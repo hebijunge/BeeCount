@@ -23,6 +23,8 @@ const _envByPreset = <String, String>{
   'zhipu_glm': 'ZHIPU_API_KEY',
   'requesty_free': 'REQUESTY_API_KEY',
   'xiaohongshu_dots': 'DOTS_API_KEY',
+  'intern_discovery': 'INTERN_API_KEY',
+  'kilo_free': 'KILO_API_KEY',
 };
 
 const _extractText = '今天上午在公司楼下全家便利店买咖啡和面包 32 元，'
@@ -131,8 +133,7 @@ Future<void> _bind(AIModelPreset preset, String apiKey) async {
     'ai_capability_binding_v2',
     jsonEncode(AICapabilityBinding(
       textProviderId: provider.id,
-      visionProviderId:
-          provider.visionModel.isEmpty ? null : provider.id,
+      visionProviderId: provider.visionModel.isEmpty ? null : provider.id,
     ).toJson()),
   );
 }

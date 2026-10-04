@@ -6716,10 +6716,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiProviderPresetNoteZhipu => 'GLM-*-Flash 免费；语音转文字目前只有它支持';
 
   @override
-  String get aiProviderPresetNoteRequesty => '免费池按账号共享，约 15 次/分钟，NVIDIA 系模型会留存输入 30 天';
+  String get aiProviderPresetNoteRequesty => '免费池按账号共享：约 15 次/分钟，连打十几次后可能较长时间返回 429；NVIDIA 系模型会留存输入 30 天';
 
   @override
   String get aiProviderPresetNoteDots => '免费多模态，能读支付截图；按对方协议，你的输入可能用于其服务优化';
+
+  @override
+  String get aiProviderPresetNoteIntern => '端砚免费池不扣墨点；Atria 抽取约 16s，intern-s2 抽取要 70s 以上';
+
+  @override
+  String get aiProviderPresetNoteKilo => 'Kilo 免费池（OpenRouter 底层）；地址靠反向工程、限时免费，模型可能与标称不符';
 
   @override
   String get aiCapabilityText => '文本';
@@ -6753,6 +6759,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiCapabilitySpeechToTextDesc => '用于语音记账';
+
+  @override
+  String get aiCapabilityAuto => '自动';
+
+  @override
+  String get aiCapabilityAutoDesc => '调用时按列表顺序选第一个已配好 Key 且支持该能力的服务商';
+
+  @override
+  String aiCapabilityAutoUsing(String name) {
+    return '自动 · $name';
+  }
+
+  @override
+  String get aiCapabilityAutoNone => '自动 · 无可用';
 
   @override
   String get aiProviderTestRun => '点击测试';
@@ -14600,10 +14620,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiProviderPresetNoteZhipu => 'GLM-*-Flash 免費；語音轉文字目前只有它支援';
 
   @override
-  String get aiProviderPresetNoteRequesty => '免費池按帳號共用，約 15 次/分鐘，NVIDIA 系列模型會保留輸入 30 天';
+  String get aiProviderPresetNoteRequesty => '免費池按帳號共用：約 15 次/分鐘，連打十幾次後可能較長時間回傳 429；NVIDIA 系列模型會保留輸入 30 天';
 
   @override
   String get aiProviderPresetNoteDots => '免費多模態，可讀支付截圖；依對方協議，你的輸入可能用於其服務優化';
+
+  @override
+  String get aiProviderPresetNoteIntern => '端硯免費池不扣墨點；Atria 抽取約 16 秒，intern-s2 抽取要 70 秒以上';
+
+  @override
+  String get aiProviderPresetNoteKilo => 'Kilo 免費池（OpenRouter 底層）；網址靠反向工程、限時免費，模型可能與標示不符';
 
   @override
   String get aiCapabilityText => '文字';
@@ -14637,6 +14663,20 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiCapabilitySpeechToTextDesc => '用於語音記帳';
+
+  @override
+  String get aiCapabilityAuto => '自動';
+
+  @override
+  String get aiCapabilityAutoDesc => '呼叫時依清單順序選第一個已設定好金鑰且支援該能力的服務商';
+
+  @override
+  String aiCapabilityAutoUsing(String name) {
+    return '自動 · $name';
+  }
+
+  @override
+  String get aiCapabilityAutoNone => '自動 · 無可用';
 
   @override
   String get aiProviderTestRun => '點擊測試';

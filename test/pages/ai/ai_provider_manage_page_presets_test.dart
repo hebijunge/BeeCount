@@ -48,8 +48,8 @@ void main() {
 
   /// 只认输入框当前的值：预设的 hintText 也等于默认模型名，
   /// 用 widgetWithText 判会把 hint 那份也数进去。
-  Finder fieldShowing(WidgetTester tester, String text) => find.byWidgetPredicate(
-      (w) => w is EditableText && w.controller.text == text);
+  Finder fieldShowing(WidgetTester tester, String text) => find
+      .byWidgetPredicate((w) => w is EditableText && w.controller.text == text);
 
   /// 往当前值为 [oldText] 的输入框里替换成 [newText]。
   Future<void> replaceText(
@@ -68,7 +68,9 @@ void main() {
     expect(find.text('智谱GLM'), findsWidgets);
     expect(find.text('Requesty 免费池'), findsOneWidget);
     expect(find.text('小红书点点'), findsOneWidget);
-    expect(find.text('内置'), findsNWidgets(3));
+    expect(find.text('书生·端砚'), findsOneWidget);
+    expect(find.text('Kilo 免费池'), findsOneWidget);
+    expect(find.text('内置'), findsNWidgets(5));
     expect(find.byIcon(Icons.delete_outline), findsNothing);
     await drainLoggerTimer(tester);
   });
@@ -79,6 +81,8 @@ void main() {
     expect(find.textContaining('免费多模态'), findsOneWidget);
     expect(find.textContaining('15 次/分钟'), findsOneWidget);
     expect(find.textContaining('目前只有它支持'), findsOneWidget);
+    expect(find.textContaining('不扣墨点'), findsOneWidget);
+    expect(find.textContaining('反向工程'), findsOneWidget);
     await drainLoggerTimer(tester);
   });
 
@@ -86,7 +90,8 @@ void main() {
     await pumpPage(tester);
     await openEditor(tester, 'Requesty 免费池');
 
-    expect(fieldShowing(tester, 'https://router.requesty.ai/v1'), findsOneWidget);
+    expect(
+        fieldShowing(tester, 'https://router.requesty.ai/v1'), findsOneWidget);
     expect(find.text('恢复默认'), findsOneWidget);
 
     await replaceText(tester, 'Requesty 免费池', '我的免费池');

@@ -68,7 +68,8 @@ void main() {
     test('toJson / copyWith 不丢 protocol', () {
       final zhipu = AIServiceProviderConfig.zhipuDefault;
       expect(zhipu.toJson()['protocol'], 'zhipu');
-      expect(AIServiceProviderConfig.fromJson(zhipu.toJson()).usesZhipuSdk, isTrue);
+      expect(AIServiceProviderConfig.fromJson(zhipu.toJson()).usesZhipuSdk,
+          isTrue);
       expect(zhipu.copyWith(apiKey: 'k').usesZhipuSdk, isTrue);
     });
   });
@@ -77,14 +78,24 @@ void main() {
     test('老数据只有智谱时，补出其余预设并落库', () async {
       SharedPreferences.setMockInitialValues({
         'ai_providers_v2': jsonEncode([
-          AIServiceProviderConfig.zhipuDefault.copyWith(apiKey: 'old-key').toJson(),
+          AIServiceProviderConfig.zhipuDefault
+              .copyWith(apiKey: 'old-key')
+              .toJson(),
         ]),
       });
 
       final providers = await AIProviderManager.getProviders();
-      expect(providers.map((p) => p.id),
-          containsAll(<String>['zhipu_glm', 'requesty_free', 'xiaohongshu_dots']));
-      expect(providers.firstWhere((p) => p.id == 'zhipu_glm').apiKey, 'old-key');
+      expect(
+          providers.map((p) => p.id),
+          containsAll(<String>[
+            'zhipu_glm',
+            'requesty_free',
+            'xiaohongshu_dots',
+            'intern_discovery',
+            'kilo_free',
+          ]));
+      expect(
+          providers.firstWhere((p) => p.id == 'zhipu_glm').apiKey, 'old-key');
 
       // 补齐结果已写回 prefs（第二次读不应再增长）
       final again = await AIProviderManager.getProviders();
@@ -112,8 +123,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       await AIProviderManager.getProviders();
 
-      expect(
-          await AIProviderManager.deleteProvider('requesty_free'), isFalse);
+      expect(await AIProviderManager.deleteProvider('requesty_free'), isFalse);
       final providers = await AIProviderManager.getProviders();
       expect(providers.map((p) => p.id), contains('requesty_free'));
 
@@ -131,6 +141,71 @@ void main() {
       final providers = await AIProviderManager.getProviders();
       expect(providers.first.id, 'zhipu_glm');
       expect(providers.length, kAiProviderPresets.length);
+    });
+  });
+
+  group('内置预设置顶', () {
+    AIServiceProviderConfig custom(String id) => AIServiceProviderConfig(
+          id: id,
+          name: id,
+          baseUrl: 'https://internal.example.com/v1',
+          textModel: 'm',
+          createdAt: DateTime(2026, 1, 1),
+        );
+
+    test('纯函数：预设按目录顺序在前，自建保持原有先后', () {
+      final ordered = AIProviderManager.sortBuiltInFirst([
+        custom('mine_a'),
+        aiPresetById('xiaohongshu_dots')!.toProvider(),
+        custom('mine_b'),
+        aiPresetById('requesty_free')!.toProvider(),
+        aiPresetById('zhipu_glm')!.toProvider(),
+      ]);
+
+      expect(ordered.map((p) => p.id), <String>[
+        'zhipu_glm',
+        'requesty_free',
+        'xiaohongshu_dots',
+        'mine_a',
+        'mine_b',
+      ]);
+    });
+
+    test('目录外的内置项排在预设之后、自建之前', () {
+      final legacy = AIServiceProviderConfig(
+        id: 'legacy_built_in',
+        name: '老内置',
+        isBuiltIn: true,
+        createdAt: DateTime(2024, 1, 1),
+      );
+      final ordered = AIProviderManager.sortBuiltInFirst(
+          [custom('mine_a'), legacy, aiPresetById('zhipu_glm')!.toProvider()]);
+      expect(ordered.map((p) => p.id),
+          <String>['zhipu_glm', 'legacy_built_in', 'mine_a']);
+    });
+
+    test('自建服务商存在时，读出来内置在最前并且顺序落库', () async {
+      SharedPreferences.setMockInitialValues({
+        'ai_providers_v2': jsonEncode([
+          custom('mine_a').toJson(),
+          AIServiceProviderConfig.zhipuDefault.toJson(),
+          aiPresetById('requesty_free')!.toProvider().toJson(),
+          aiPresetById('xiaohongshu_dots')!.toProvider().toJson(),
+        ]),
+      });
+
+      final providers = await AIProviderManager.getProviders();
+      expect(providers.first.id, 'zhipu_glm');
+      expect(providers.last.id, 'mine_a');
+
+      // 再读一次不该来回抖动，也不该再写库
+      final again = await AIProviderManager.getProviders();
+      expect(again.map((p) => p.id), providers.map((p) => p.id));
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+          (jsonDecode(prefs.getString('ai_providers_v2')!) as List)
+              .map((p) => (p as Map)['id']),
+          providers.map((p) => p.id));
     });
   });
 
@@ -162,8 +237,7 @@ void main() {
       expect(same.single.apiKey, isEmpty);
 
       expect(
-          AIProviderManager
-              .applyLocalApiKeys(providers, {'requesty_free': ''})
+          AIProviderManager.applyLocalApiKeys(providers, {'requesty_free': ''})
               .$2,
           isFalse);
     });
@@ -181,7 +255,8 @@ void main() {
           .readAsStringSync();
       expect(src, contains('String.fromEnvironment'));
       // 形如 'hex.随机段' 的智谱 key、或直接把值写死成字符串字面量
-      expect(RegExp(r"'[0-9a-f]{24,}\.[A-Za-z0-9]{12,}'").hasMatch(src), isFalse);
+      expect(
+          RegExp(r"'[0-9a-f]{24,}\.[A-Za-z0-9]{12,}'").hasMatch(src), isFalse);
       expect(RegExp(r"BEE_AI_KEY_\w+'\s*,\s*'").hasMatch(src), isFalse);
     });
   });

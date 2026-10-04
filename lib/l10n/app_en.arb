@@ -2957,8 +2957,10 @@
     }
   },
   "aiProviderPresetNoteZhipu": "Free GLM-*-Flash models; the only provider that supports speech-to-text.",
-  "aiProviderPresetNoteRequesty": "Free tier is shared per account: about 15 requests/min, and NVIDIA models keep inputs for 30 days.",
+  "aiProviderPresetNoteRequesty": "Free tier is shared per account: about 15 requests/min, and after a dozen or so calls it can stay rate-limited for a while; NVIDIA models keep inputs for 30 days.",
   "aiProviderPresetNoteDots": "Free multimodal, reads payment screenshots; per its terms your input may be used to improve the service.",
+  "aiProviderPresetNoteIntern": "Intern free pool, no credit cost; Atria extracts in ~16s, intern-s2 takes 70s+",
+  "aiProviderPresetNoteKilo": "Kilo free pool (OpenRouter underneath); endpoint is unofficial and time-limited, models may differ from the label",
   "aiCapabilityText": "Text",
   "aiCapabilityVision": "Vision",
   "aiCapabilitySpeech": "Speech",
@@ -2970,6 +2972,17 @@
   "aiCapabilityImageUnderstandDesc": "For image bill recognition",
   "aiCapabilitySpeechToText": "Speech to Text",
   "aiCapabilitySpeechToTextDesc": "For voice billing",
+  "aiCapabilityAuto": "Auto",
+  "aiCapabilityAutoDesc": "At call time pick the first provider that has an API key and supports this capability",
+  "aiCapabilityAutoUsing": "Auto - {name}",
+  "@aiCapabilityAutoUsing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiCapabilityAutoNone": "Auto - none available",
   "aiProviderTestRun": "Tap to test",
   "aiProviderTestRunning": "Testing...",
   "aiProviderTestSuccess": "Test passed",

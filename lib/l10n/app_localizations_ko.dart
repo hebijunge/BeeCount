@@ -6722,10 +6722,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiProviderPresetNoteZhipu => 'GLM-*-Flash 무료; 음성-텍스트 변환은 이 제공업체만 지원합니다';
 
   @override
-  String get aiProviderPresetNoteRequesty => '무료 풀은 계정당 공유이며 약 15회/분, NVIDIA 모델은 입력을 30일간 보관합니다';
+  String get aiProviderPresetNoteRequesty => '무료 풀은 계정당 공유입니다. 약 15회/분, 열 몇 번 연속 호출 후 한동안 429가 지속될 수 있으며 NVIDIA 모델은 입력을 30일간 보관합니다';
 
   @override
   String get aiProviderPresetNoteDots => '무료 멀티모달, 결제 스크린샷을 읽을 수 있습니다; 약관에 따라 입력이 서비스 개선에 사용될 수 있습니다';
+
+  @override
+  String get aiProviderPresetNoteIntern => 'Intern 무료 풀, 크레딧 차감 없음; Atria는 약 16초, intern-s2는 70초 이상';
+
+  @override
+  String get aiProviderPresetNoteKilo => 'Kilo 무료 풀(OpenRouter 기반); 주소가 비공식이고 기간 한정이며 모델이 표기와 다를 수 있습니다';
 
   @override
   String get aiCapabilityText => '텍스트';
@@ -6759,6 +6765,20 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiCapabilitySpeechToTextDesc => '음성 기록에 사용됩니다';
+
+  @override
+  String get aiCapabilityAuto => '자동';
+
+  @override
+  String get aiCapabilityAutoDesc => '호출 시 목록 순서대로 API 키가 있고 이 기능을 지원하는 첫 제공업체를 고릅니다';
+
+  @override
+  String aiCapabilityAutoUsing(String name) {
+    return '자동 · $name';
+  }
+
+  @override
+  String get aiCapabilityAutoNone => '자동 · 사용 가능 없음';
 
   @override
   String get aiProviderTestRun => '눌러서 테스트';

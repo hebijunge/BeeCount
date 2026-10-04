@@ -2901,8 +2901,10 @@
     }
   },
   "aiProviderPresetNoteZhipu": "GLM-*-Flash 免费；语音转文字目前只有它支持",
-  "aiProviderPresetNoteRequesty": "免费池按账号共享，约 15 次/分钟，NVIDIA 系模型会留存输入 30 天",
+  "aiProviderPresetNoteRequesty": "免费池按账号共享：约 15 次/分钟，连打十几次后可能较长时间返回 429；NVIDIA 系模型会留存输入 30 天",
   "aiProviderPresetNoteDots": "免费多模态，能读支付截图；按对方协议，你的输入可能用于其服务优化",
+  "aiProviderPresetNoteIntern": "端砚免费池不扣墨点；Atria 抽取约 16s，intern-s2 抽取要 70s 以上",
+  "aiProviderPresetNoteKilo": "Kilo 免费池（OpenRouter 底层）；地址靠反向工程、限时免费，模型可能与标称不符",
   "aiCapabilityText": "文本",
   "aiCapabilityVision": "视觉",
   "aiCapabilitySpeech": "语音",
@@ -2914,6 +2916,17 @@
   "aiCapabilityImageUnderstandDesc": "用于图片账单识别",
   "aiCapabilitySpeechToText": "语音转文字",
   "aiCapabilitySpeechToTextDesc": "用于语音记账",
+  "aiCapabilityAuto": "自动",
+  "aiCapabilityAutoDesc": "调用时按列表顺序选第一个已配好 Key 且支持该能力的服务商",
+  "aiCapabilityAutoUsing": "自动 · {name}",
+  "@aiCapabilityAutoUsing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiCapabilityAutoNone": "自动 · 无可用",
   "aiProviderTestRun": "点击测试",
   "aiProviderTestRunning": "测试中...",
   "aiProviderTestSuccess": "测试通过",

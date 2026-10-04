@@ -6722,10 +6722,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiProviderPresetNoteZhipu => 'Free GLM-*-Flash models; the only provider that supports speech-to-text.';
 
   @override
-  String get aiProviderPresetNoteRequesty => 'Free tier is shared per account: about 15 requests/min, and NVIDIA models keep inputs for 30 days.';
+  String get aiProviderPresetNoteRequesty => 'Free tier is shared per account: about 15 requests/min, and after a dozen or so calls it can stay rate-limited for a while; NVIDIA models keep inputs for 30 days.';
 
   @override
   String get aiProviderPresetNoteDots => 'Free multimodal, reads payment screenshots; per its terms your input may be used to improve the service.';
+
+  @override
+  String get aiProviderPresetNoteIntern => 'Intern free pool, no credit cost; Atria extracts in ~16s, intern-s2 takes 70s+';
+
+  @override
+  String get aiProviderPresetNoteKilo => 'Kilo free pool (OpenRouter underneath); endpoint is unofficial and time-limited, models may differ from the label';
 
   @override
   String get aiCapabilityText => 'Text';
@@ -6759,6 +6765,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiCapabilitySpeechToTextDesc => 'For voice billing';
+
+  @override
+  String get aiCapabilityAuto => 'Auto';
+
+  @override
+  String get aiCapabilityAutoDesc => 'At call time pick the first provider that has an API key and supports this capability';
+
+  @override
+  String aiCapabilityAutoUsing(String name) {
+    return 'Auto - $name';
+  }
+
+  @override
+  String get aiCapabilityAutoNone => 'Auto - none available';
 
   @override
   String get aiProviderTestRun => 'Tap to test';

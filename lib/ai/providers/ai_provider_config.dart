@@ -77,6 +77,20 @@ class AIServiceProviderConfig {
   /// 是否支持语音转文字
   bool get supportsSpeech => audioModel.isNotEmpty;
 
+  /// 该服务商能否承担某项能力。
+  ///
+  /// 「自动」绑定和绑定选择器都走这里判，免得两处各写一遍 switch 走偏。
+  bool supports(AICapabilityType type) {
+    switch (type) {
+      case AICapabilityType.text:
+        return supportsText;
+      case AICapabilityType.vision:
+        return supportsVision;
+      case AICapabilityType.speech:
+        return supportsSpeech;
+    }
+  }
+
   /// 复制并修改
   AIServiceProviderConfig copyWith({
     String? id,
@@ -149,6 +163,12 @@ class AIServiceProviderConfig {
 ///
 /// 存储每种能力使用哪个服务商
 class AICapabilityBinding {
+  /// 「自动」占位 id：不绑死某一家，调用时按服务商列表顺序挑第一个
+  /// 已配好 API Key 且支持该能力的服务商。
+  static const String autoProviderId = 'auto';
+
+  static bool isAuto(String? providerId) => providerId == autoProviderId;
+
   /// 文本对话使用的服务商 ID
   final String? textProviderId;
 

@@ -62,11 +62,13 @@ class AIProviderManager {
   }
 
   /// 解析服务商配置 JSON
-  static Future<List<AIServiceProviderConfig>> _parseProviders(String jsonStr) async {
+  static Future<List<AIServiceProviderConfig>> _parseProviders(
+      String jsonStr) async {
     try {
       final jsonList = jsonDecode(jsonStr) as List;
       var providers = jsonList
-          .map((e) => AIServiceProviderConfig.fromJson(e as Map<String, dynamic>))
+          .map((e) =>
+              AIServiceProviderConfig.fromJson(e as Map<String, dynamic>))
           .toList();
 
       // 确保智谱GLM始终存在
@@ -84,9 +86,12 @@ class AIProviderManager {
           logger.info(_tag, '从旧配置恢复智谱API Key');
           providers[zhipuIndex] = providers[zhipuIndex].copyWith(
             apiKey: oldApiKey,
-            textModel: prefs.getString('ai_glm_model') ?? providers[zhipuIndex].textModel,
-            visionModel: prefs.getString('ai_glm_vision_model') ?? providers[zhipuIndex].visionModel,
-            audioModel: prefs.getString('ai_glm_audio_model') ?? providers[zhipuIndex].audioModel,
+            textModel: prefs.getString('ai_glm_model') ??
+                providers[zhipuIndex].textModel,
+            visionModel: prefs.getString('ai_glm_vision_model') ??
+                providers[zhipuIndex].visionModel,
+            audioModel: prefs.getString('ai_glm_audio_model') ??
+                providers[zhipuIndex].audioModel,
           );
           await _saveProviders(providers);
         }
@@ -99,7 +104,7 @@ class AIProviderManager {
     }
   }
 
-  /// 补齐缺失的内置预设并落库。
+  /// 补齐缺失的内置预设、把内置项置顶，并落库。
   ///
   /// 只补 id 不存在的项：用户改过模型名、Base URL 的预设原样保留，
   /// 不会因为升级被覆盖回默认值。
@@ -114,13 +119,47 @@ class AIProviderManager {
       }
     }
 
-    final (filled, keysApplied) = applyLocalApiKeys(merged, kLocalAiApiKeys);
+    final ordered = sortBuiltInFirst(merged);
+    if (!changed) {
+      changed = _idSequence(merged) != _idSequence(ordered);
+    }
+
+    final (filled, keysApplied) = applyLocalApiKeys(ordered, kLocalAiApiKeys);
+    if (changed) {
+      logger.info(_tag, '内置服务商预设已补齐或置顶');
+    } else if (keysApplied) {
+      logger.info(_tag, '填入本机注入的 AI Key');
+    }
     if (changed || keysApplied) {
-      logger.info(_tag, changed ? '补齐内置服务商预设' : '填入本机注入的 AI Key');
       await _saveProviders(filled);
     }
     return filled;
   }
+
+  /// 内置服务商按预设目录顺序置顶，用户自建的保持原有先后。
+  static List<AIServiceProviderConfig> sortBuiltInFirst(
+      List<AIServiceProviderConfig> providers) {
+    final builtIn = <AIServiceProviderConfig>[];
+    final custom = <AIServiceProviderConfig>[];
+    for (final p in providers) {
+      (p.isBuiltIn ? builtIn : custom).add(p);
+    }
+    int rank(AIServiceProviderConfig p) {
+      final index =
+          kAiProviderPresets.indexWhere((preset) => preset.id == p.id);
+      // 目录里没有的内置项（例如老版本遗留）排在预设之后、自建之前。
+      return index < 0 ? kAiProviderPresets.length : index;
+    }
+
+    builtIn.sort((a, b) {
+      final byRank = rank(a).compareTo(rank(b));
+      return byRank != 0 ? byRank : a.id.compareTo(b.id);
+    });
+    return <AIServiceProviderConfig>[...builtIn, ...custom];
+  }
+
+  static String _idSequence(List<AIServiceProviderConfig> providers) =>
+      providers.map((p) => p.id).join('|');
 
   /// 把构建期注入的 key 填进还没有 key 的服务商。
   ///
@@ -180,7 +219,8 @@ class AIProviderManager {
   }
 
   /// 直接添加服务商配置（保留原始 ID，用于配置导入）
-  static Future<void> addProviderWithConfig(AIServiceProviderConfig provider) async {
+  static Future<void> addProviderWithConfig(
+      AIServiceProviderConfig provider) async {
     final providers = await getProviders();
     providers.add(provider);
     await _saveProviders(providers);
@@ -243,7 +283,8 @@ class AIProviderManager {
   }
 
   /// 保存服务商列表
-  static Future<void> _saveProviders(List<AIServiceProviderConfig> providers) async {
+  static Future<void> _saveProviders(
+      List<AIServiceProviderConfig> providers) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(providers.map((p) => p.toJson()).toList());
     await prefs.setString(_keyProviders, jsonStr);
@@ -277,7 +318,8 @@ class AIProviderManager {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(binding.toJson());
     await prefs.setString(_keyBinding, jsonStr);
-    logger.info(_tag, '保存能力绑定: text=${binding.textProviderId}, vision=${binding.visionProviderId}, speech=${binding.speechProviderId}');
+    logger.info(_tag,
+        '保存能力绑定: text=${binding.textProviderId}, vision=${binding.visionProviderId}, speech=${binding.speechProviderId}');
     try {
       onConfigChanged?.call();
     } catch (e, st) {
@@ -341,7 +383,8 @@ class AIProviderManager {
     }
 
     final strategy = config['strategy'] as String?;
-    if (strategy != null && strategy.isNotEmpty &&
+    if (strategy != null &&
+        strategy.isNotEmpty &&
         prefs.getString('ai_strategy') != strategy) {
       await prefs.setString('ai_strategy', strategy);
     }
@@ -417,11 +460,30 @@ class AIProviderManager {
         break;
     }
 
+    if (AICapabilityBinding.isAuto(providerId)) {
+      return pickAuto(await getProviders(), type);
+    }
+
     if (providerId == null) {
       return AIServiceProviderConfig.zhipuDefault;
     }
 
     return await getProvider(providerId);
+  }
+
+  /// 「自动」的解析规则：按列表顺序取第一个已配好 key 且支持该能力的服务商。
+  ///
+  /// 列表顺序本身是内置预设置顶（见 [sortBuiltInFirst]），所以自动优先落在
+  /// 实测过的几家上，而不是用户随手加的自建网关。全都不满足时返回 null，
+  /// 由调用方给出「未配置」提示，不静默退到某一家。
+  static AIServiceProviderConfig? pickAuto(
+    List<AIServiceProviderConfig> providers,
+    AICapabilityType type,
+  ) {
+    for (final provider in providers) {
+      if (provider.isValid && provider.supports(type)) return provider;
+    }
+    return null;
   }
 
   /// 指定能力对应的 provider 是否已配置好(有 apiKey)。
@@ -450,8 +512,10 @@ class AIProviderManager {
     // 读取智谱 GLM 配置（使用正确的 key）
     final glmApiKey = prefs.getString('ai_glm_api_key') ?? '';
     final glmTextModel = prefs.getString('ai_glm_model') ?? 'glm-4-flash';
-    final glmVisionModel = prefs.getString('ai_glm_vision_model') ?? 'glm-4v-flash';
-    final glmAudioModel = prefs.getString('ai_glm_audio_model') ?? 'glm-4-voice';
+    final glmVisionModel =
+        prefs.getString('ai_glm_vision_model') ?? 'glm-4v-flash';
+    final glmAudioModel =
+        prefs.getString('ai_glm_audio_model') ?? 'glm-4-voice';
 
     logger.info(_tag, '迁移智谱配置: apiKey=${glmApiKey.isNotEmpty ? "已配置" : "未配置"}');
 
@@ -485,9 +549,8 @@ class AIProviderManager {
     await _saveProviders(providers);
 
     // 设置能力绑定
-    final defaultProviderId = isCustom && customApiKey.isNotEmpty
-        ? 'custom_migrated'
-        : 'zhipu_glm';
+    final defaultProviderId =
+        isCustom && customApiKey.isNotEmpty ? 'custom_migrated' : 'zhipu_glm';
 
     await saveCapabilityBinding(AICapabilityBinding(
       textProviderId: defaultProviderId,

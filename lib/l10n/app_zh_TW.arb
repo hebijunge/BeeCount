@@ -2542,8 +2542,10 @@
     }
   },
   "aiProviderPresetNoteZhipu": "GLM-*-Flash 免費；語音轉文字目前只有它支援",
-  "aiProviderPresetNoteRequesty": "免費池按帳號共用，約 15 次/分鐘，NVIDIA 系列模型會保留輸入 30 天",
+  "aiProviderPresetNoteRequesty": "免費池按帳號共用：約 15 次/分鐘，連打十幾次後可能較長時間回傳 429；NVIDIA 系列模型會保留輸入 30 天",
   "aiProviderPresetNoteDots": "免費多模態，可讀支付截圖；依對方協議，你的輸入可能用於其服務優化",
+  "aiProviderPresetNoteIntern": "端硯免費池不扣墨點；Atria 抽取約 16 秒，intern-s2 抽取要 70 秒以上",
+  "aiProviderPresetNoteKilo": "Kilo 免費池（OpenRouter 底層）；網址靠反向工程、限時免費，模型可能與標示不符",
   "aiCapabilityText": "文字",
   "aiCapabilityVision": "視覺",
   "aiCapabilitySpeech": "語音",
@@ -2555,6 +2557,17 @@
   "aiCapabilityImageUnderstandDesc": "用於圖片帳單識別",
   "aiCapabilitySpeechToText": "語音轉文字",
   "aiCapabilitySpeechToTextDesc": "用於語音記帳",
+  "aiCapabilityAuto": "自動",
+  "aiCapabilityAutoDesc": "呼叫時依清單順序選第一個已設定好金鑰且支援該能力的服務商",
+  "aiCapabilityAutoUsing": "自動 · {name}",
+  "@aiCapabilityAutoUsing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiCapabilityAutoNone": "自動 · 無可用",
   "aiProviderTestRun": "點擊測試",
   "aiProviderTestRunning": "測試中...",
   "aiProviderTestSuccess": "測試通過",

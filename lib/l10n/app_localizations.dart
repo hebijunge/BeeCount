@@ -12815,7 +12815,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiProviderPresetNoteRequesty.
   ///
   /// In en, this message translates to:
-  /// **'Free tier is shared per account: about 15 requests/min, and NVIDIA models keep inputs for 30 days.'**
+  /// **'Free tier is shared per account: about 15 requests/min, and after a dozen or so calls it can stay rate-limited for a while; NVIDIA models keep inputs for 30 days.'**
   String get aiProviderPresetNoteRequesty;
 
   /// No description provided for @aiProviderPresetNoteDots.
@@ -12823,6 +12823,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Free multimodal, reads payment screenshots; per its terms your input may be used to improve the service.'**
   String get aiProviderPresetNoteDots;
+
+  /// No description provided for @aiProviderPresetNoteIntern.
+  ///
+  /// In en, this message translates to:
+  /// **'Intern free pool, no credit cost; Atria extracts in ~16s, intern-s2 takes 70s+'**
+  String get aiProviderPresetNoteIntern;
+
+  /// No description provided for @aiProviderPresetNoteKilo.
+  ///
+  /// In en, this message translates to:
+  /// **'Kilo free pool (OpenRouter underneath); endpoint is unofficial and time-limited, models may differ from the label'**
+  String get aiProviderPresetNoteKilo;
 
   /// No description provided for @aiCapabilityText.
   ///
@@ -12889,6 +12901,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'For voice billing'**
   String get aiCapabilitySpeechToTextDesc;
+
+  /// No description provided for @aiCapabilityAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get aiCapabilityAuto;
+
+  /// No description provided for @aiCapabilityAutoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'At call time pick the first provider that has an API key and supports this capability'**
+  String get aiCapabilityAutoDesc;
+
+  /// No description provided for @aiCapabilityAutoUsing.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto - {name}'**
+  String aiCapabilityAutoUsing(String name);
+
+  /// No description provided for @aiCapabilityAutoNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto - none available'**
+  String get aiCapabilityAutoNone;
 
   /// No description provided for @aiProviderTestRun.
   ///

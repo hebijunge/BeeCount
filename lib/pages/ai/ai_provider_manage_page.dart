@@ -27,6 +27,8 @@ String? aiProviderPresetNote(AppLocalizations l10n, String id) {
       return l10n.aiProviderPresetNoteIntern;
     case 'kilo_free':
       return l10n.aiProviderPresetNoteKilo;
+    case 'amd_radeon':
+      return l10n.aiProviderPresetNoteAmd;
     default:
       return null;
   }

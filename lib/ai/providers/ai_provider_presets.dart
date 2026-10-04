@@ -7,9 +7,12 @@ import 'ai_provider_config.dart';
 ///
 /// 进这份名单的门槛：用记账真实负载逐项实测过——中文流水抽取 JSON、带 system 的
 /// 原生工具调用（相对时间要换算对）、base64 支付截图读金额。2026-10-04 实测通过的
-/// 就是下面这五家（含单项耗时写进各家说明）。
-/// 没进来的：AMD（条款禁 resell/proxy、不可用于生产）、OpenRouter 与 agnes
-/// （本机到这两个域名的请求被中间设备改写成 m.baidu.com，无法验证）。
+/// 就是下面这几家（单项耗时写进各家说明）。
+/// 没进来的只有 OpenRouter 与 agnes：本机到这两个域名的请求被中间设备改写成
+/// m.baidu.com，拿不到能用的证据。
+///
+/// AMD 走 [AIModelPreset.localOnly]：条款禁 resell/proxy、明说不可用于生产，
+/// 所以它只出现在构建期注入过它 key 的本机包里，公开包行为不变。
 class AIModelPreset {
   const AIModelPreset({
     required this.id,
@@ -23,6 +26,7 @@ class AIModelPreset {
     this.visionModelChoices = const <String>[],
     this.audioModelChoices = const <String>[],
     this.keyUrl = '',
+    this.localOnly = false,
   });
 
   final String id;
@@ -42,6 +46,12 @@ class AIModelPreset {
 
   /// 申请 API Key 的页面，空则不显示「获取 Key」按钮。
   final String keyUrl;
+
+  /// 只进本机自建的包：需要构建期注入该家 key 才会出现在列表里。
+  ///
+  /// 给的是条款不允许分发场景的服务商（AMD 明说不可用于生产、禁 resell/proxy）。
+  /// 公开仓库和 GitHub 上的包没有它的 key，也就永远看不到这一条。
+  final bool localOnly;
 
   AIServiceProviderConfig toProvider() => AIServiceProviderConfig(
         id: id,
@@ -135,7 +145,33 @@ const List<AIModelPreset> kAiProviderPresets = <AIModelPreset>[
     ],
     keyUrl: 'https://kilo.ai',
   ),
+  AIModelPreset(
+    id: 'amd_radeon',
+    name: 'AMD Radeon 免费池',
+    baseUrl: 'https://developer.amd.com.cn/radeon/api/v1',
+    textModel: 'DeepSeek-V4-Flash',
+    visionModel: 'DeepSeek-V4-Flash-Vision-Exp',
+    textModelChoices: <String>[
+      'DeepSeek-V4-Flash',
+      'Qwen3.8-Flash-Next',
+    ],
+    visionModelChoices: <String>[
+      'DeepSeek-V4-Flash-Vision-Exp',
+      'Qwen3.8-Flash-Next',
+    ],
+    keyUrl: 'https://developer.amd.com.cn/radeon',
+    // 条款禁 resell/proxy、明说不可用于生产：只进构建期注入过它 key 的本机包。
+    localOnly: true,
+  ),
 ];
+
+/// 这次构建该补哪些预设：`localOnly` 的那几家，只有注入过它的 key 才出现。
+List<AIModelPreset> seedablePresets(Map<String, String> localApiKeys) {
+  return kAiProviderPresets.where((preset) {
+    if (!preset.localOnly) return true;
+    return (localApiKeys[preset.id] ?? '').isNotEmpty;
+  }).toList();
+}
 
 /// 按 id 找预设；用户自建的、或 id 已被改名的服务商返回 null。
 AIModelPreset? aiPresetById(String id) {

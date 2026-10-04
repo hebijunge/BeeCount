@@ -6734,6 +6734,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiProviderPresetNoteKilo => 'Kilo 무료 풀(OpenRouter 기반); 주소가 비공식이고 기간 한정이며 모델이 표기와 다를 수 있습니다';
 
   @override
+  String get aiProviderPresetNoteAmd => 'AMD 무료 풀: 약관에 재판매/프록시 및 프로덕션 사용 금지 조항이 있어 직접 빌드하고 키를 주입한 패키지만에 나타납니다. 약 20회/분';
+
+  @override
   String get aiCapabilityText => '텍스트';
 
   @override

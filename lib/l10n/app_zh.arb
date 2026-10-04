@@ -2905,6 +2905,7 @@
   "aiProviderPresetNoteDots": "免费多模态，能读支付截图；按对方协议，你的输入可能用于其服务优化",
   "aiProviderPresetNoteIntern": "端砚免费池不扣墨点；Atria 抽取约 16s，intern-s2 抽取要 70s 以上",
   "aiProviderPresetNoteKilo": "Kilo 免费池（OpenRouter 底层）；地址靠反向工程、限时免费，模型可能与标称不符",
+  "aiProviderPresetNoteAmd": "AMD 免费池：条款禁 resell/proxy、不可用于生产，所以只出现在你自己构建、且注入过 key 的包里；约 20 次/分钟",
   "aiCapabilityText": "文本",
   "aiCapabilityVision": "视觉",
   "aiCapabilitySpeech": "语音",

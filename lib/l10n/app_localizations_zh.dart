@@ -6728,6 +6728,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiProviderPresetNoteKilo => 'Kilo 免费池（OpenRouter 底层）；地址靠反向工程、限时免费，模型可能与标称不符';
 
   @override
+  String get aiProviderPresetNoteAmd => 'AMD 免费池：条款禁 resell/proxy、不可用于生产，所以只出现在你自己构建、且注入过 key 的包里；约 20 次/分钟';
+
+  @override
   String get aiCapabilityText => '文本';
 
   @override
@@ -14630,6 +14633,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiProviderPresetNoteKilo => 'Kilo 免費池（OpenRouter 底層）；網址靠反向工程、限時免費，模型可能與標示不符';
+
+  @override
+  String get aiProviderPresetNoteAmd => 'AMD 免費池：條款禁 resell/proxy、不可用於生產，所以只出現在你自己建置、且注入過金鑰的套件裡；約 20 次/分鐘';
 
   @override
   String get aiCapabilityText => '文字';

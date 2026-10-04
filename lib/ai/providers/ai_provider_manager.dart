@@ -112,7 +112,7 @@ class AIProviderManager {
       List<AIServiceProviderConfig> providers) async {
     var changed = false;
     final merged = List<AIServiceProviderConfig>.of(providers);
-    for (final preset in kAiProviderPresets) {
+    for (final preset in seedablePresets(kLocalAiApiKeys)) {
       if (!merged.any((p) => p.id == preset.id)) {
         merged.add(preset.toProvider());
         changed = true;

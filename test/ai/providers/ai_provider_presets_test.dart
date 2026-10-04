@@ -40,6 +40,20 @@ void main() {
       }
     });
 
+    test('localOnly 的那几家只在注入过 key 时才参与补齐', () {
+      final localOnly = kAiProviderPresets
+          .where((p) => p.localOnly)
+          .map((p) => p.id)
+          .toList();
+      expect(localOnly, contains('amd_radeon'));
+
+      expect(seedablePresets(const {}).map((p) => p.id),
+          isNot(containsAll(localOnly)));
+      final keys = {for (final id in localOnly) id: 'k'};
+      expect(seedablePresets(keys).map((p) => p.id), containsAll(localOnly));
+      expect(seedablePresets(keys).length, kAiProviderPresets.length);
+    });
+
     test('预设转成的服务商是内置的、没有 API Key', () {
       final provider = kAiProviderPresets.first.toProvider();
       expect(provider.isBuiltIn, isTrue);
@@ -140,7 +154,9 @@ void main() {
 
       final providers = await AIProviderManager.getProviders();
       expect(providers.first.id, 'zhipu_glm');
-      expect(providers.length, kAiProviderPresets.length);
+      // AMD 是 localOnly：没注入它的 key 就不该出现在这里
+      expect(providers.length, seedablePresets(const {}).length);
+      expect(providers.map((p) => p.id), isNot(contains('amd_radeon')));
     });
   });
 

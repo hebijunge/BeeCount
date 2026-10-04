@@ -6734,6 +6734,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiProviderPresetNoteKilo => 'Kilo free pool (OpenRouter underneath); endpoint is unofficial and time-limited, models may differ from the label';
 
   @override
+  String get aiProviderPresetNoteAmd => 'AMD free pool: its terms forbid resell/proxy and production use, so it only shows up in builds you compile yourself with an injected key; about 20 requests/min.';
+
+  @override
   String get aiCapabilityText => 'Text';
 
   @override

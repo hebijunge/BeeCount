@@ -12,4 +12,5 @@ const Map<String, String> kLocalAiApiKeys = <String, String>{
   'xiaohongshu_dots': String.fromEnvironment('BEE_AI_KEY_DOTS'),
   'intern_discovery': String.fromEnvironment('BEE_AI_KEY_INTERN'),
   'kilo_free': String.fromEnvironment('BEE_AI_KEY_KILO'),
+  'amd_radeon': String.fromEnvironment('BEE_AI_KEY_AMD'),
 };

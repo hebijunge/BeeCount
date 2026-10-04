@@ -71,6 +71,8 @@ void main() {
     expect(find.text('书生·端砚'), findsOneWidget);
     expect(find.text('Kilo 免费池'), findsOneWidget);
     expect(find.text('内置'), findsNWidgets(5));
+    // AMD 是 localOnly，普通构建（不带注入 key）不该看到它
+    expect(find.text('AMD Radeon 免费池'), findsNothing);
     expect(find.byIcon(Icons.delete_outline), findsNothing);
     await drainLoggerTimer(tester);
   });

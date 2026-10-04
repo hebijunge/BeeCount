@@ -2546,6 +2546,7 @@
   "aiProviderPresetNoteDots": "免費多模態，可讀支付截圖；依對方協議，你的輸入可能用於其服務優化",
   "aiProviderPresetNoteIntern": "端硯免費池不扣墨點；Atria 抽取約 16 秒，intern-s2 抽取要 70 秒以上",
   "aiProviderPresetNoteKilo": "Kilo 免費池（OpenRouter 底層）；網址靠反向工程、限時免費，模型可能與標示不符",
+  "aiProviderPresetNoteAmd": "AMD 免費池：條款禁 resell/proxy、不可用於生產，所以只出現在你自己建置、且注入過金鑰的套件裡；約 20 次/分鐘",
   "aiCapabilityText": "文字",
   "aiCapabilityVision": "視覺",
   "aiCapabilitySpeech": "語音",

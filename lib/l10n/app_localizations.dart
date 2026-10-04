@@ -12836,6 +12836,12 @@ abstract class AppLocalizations {
   /// **'Kilo free pool (OpenRouter underneath); endpoint is unofficial and time-limited, models may differ from the label'**
   String get aiProviderPresetNoteKilo;
 
+  /// No description provided for @aiProviderPresetNoteAmd.
+  ///
+  /// In en, this message translates to:
+  /// **'AMD free pool: its terms forbid resell/proxy and production use, so it only shows up in builds you compile yourself with an injected key; about 20 requests/min.'**
+  String get aiProviderPresetNoteAmd;
+
   /// No description provided for @aiCapabilityText.
   ///
   /// In en, this message translates to:

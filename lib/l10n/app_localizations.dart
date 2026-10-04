@@ -12845,25 +12845,25 @@ abstract class AppLocalizations {
   /// No description provided for @aiProviderPresetNoteAgnes.
   ///
   /// In en, this message translates to:
-  /// **'Fastest measured: extract 1.9s, tool call 1.2s, screenshot 0.9s; but TLS to this domain is intermittently intercepted on some networks'**
+  /// **'Fastest from a PC (extract 1.9s / tools 1.2s / image 0.9s), but this phone could not connect: the test timed out after 60s. Try another network'**
   String get aiProviderPresetNoteAgnes;
 
   /// No description provided for @aiProviderPresetNoteSensenova.
   ///
   /// In en, this message translates to:
-  /// **'Free during public beta, credits reset every 5 hours and weekly; rate limit is tight (about 1 request/sec), back-to-back calls get 402/429'**
+  /// **'Free during public beta, credits reset every 5 hours and weekly; the rate limit is tight (about 1 request/sec), back-to-back calls get 429. Passed the on-device test'**
   String get aiProviderPresetNoteSensenova;
 
   /// No description provided for @aiProviderPresetNotePollinations.
   ///
   /// In en, this message translates to:
-  /// **'Free tier is a one-off Quest Pollen allowance, not a per-minute quota: once it drains every call returns 402'**
+  /// **'Free tier is a one-off Quest Pollen allowance, not a per-minute quota: once it drains every call returns 402. Works from a PC but this phone failed at the connection level'**
   String get aiProviderPresetNotePollinations;
 
   /// No description provided for @aiProviderPresetNoteZai.
   ///
   /// In en, this message translates to:
-  /// **'A separate account pool from bigmodel.cn, so one more free quota; only flash models work at zero balance, measured extract 64s and tools 30s, slow'**
+  /// **'A separate account pool from bigmodel.cn, so one more free quota; only flash models work at zero balance. Measured extract 64s and tools 30s, slow. Passed the on-device test'**
   String get aiProviderPresetNoteZai;
 
   /// No description provided for @aiCapabilityText.

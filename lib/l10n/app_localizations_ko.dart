@@ -6737,16 +6737,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiProviderPresetNoteAmd => 'AMD 무료 풀: 약관에 재판매/프록시 및 프로덕션 사용 금지 조항이 있어 직접 빌드하고 키를 주입한 패키지만에 나타납니다. 약 20회/분';
 
   @override
-  String get aiProviderPresetNoteAgnes => '실측 가장 빠름: 추출 1.9초, 도구 1.2초, 이미지 0.9초; 다만 이 도메인 TLS가 간헐적으로 차단되어 연결 실패로 나타날 수 있습니다';
+  String get aiProviderPresetNoteAgnes => 'PC에서는 가장 빠름(추출 1.9초/도구 1.2초/이미지 0.9초). 다만 이 폰에서는 연결되지 않음: 연결 테스트가 60초에 중단되었습니다. 다른 네트워크에서 사용하세요';
 
   @override
-  String get aiProviderPresetNoteSensenova => '공개 베타 무료, 크레딧은 5시간 및 주간 단위로 초기화됩니다. 속도 제한이 매우 깍깐합니다(초당 약 1회), 연발하면 429';
+  String get aiProviderPresetNoteSensenova => '공개 베타 무료, 크레딧은 5시간 및 주간 단위로 초기화. 속도 제한이 매우 깍깐합니다(초당 약 1회), 연발하면 429. 폰에서 연결 테스트 통과';
 
   @override
-  String get aiProviderPresetNotePollinations => '무료는 일회성 Quest Pollen 수당이며 분 단위로 회복되는 쿼터가 아닙니다. 소진하면 전부 402';
+  String get aiProviderPresetNotePollinations => '무료는 일회성 Quest Pollen 수당이며 분 단위 쿼터가 아닙니다. 소진하면 전부 402. PC에서는 되지만 이 폰에서는 연결 단계에서 실패했습니다';
 
   @override
-  String get aiProviderPresetNoteZai => 'bigmodel.cn과 별개 계정 풀이라 무료 쿼터가 하나 더 있습니다. 잔액 0에서는 flash 계열만 호출 가능; 실측 추출 64초, 도구 30초로 느립니다';
+  String get aiProviderPresetNoteZai => 'bigmodel.cn과 별개 계정 풀이라 무료 쿼터가 하나 더 있습니다. 잔액 0에서는 flash 계열만 호출 가능; 실측 추출 64초, 도구 30초로 느림. 폰에서 연결 테스트 통과';
 
   @override
   String get aiCapabilityText => '텍스트';
